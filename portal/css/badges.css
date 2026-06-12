@@ -1,0 +1,15 @@
+/* badges.css — status badges. Colour is never the only signal: each badge carries text + glyph. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-head);
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+.badge-notstarted { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+.badge-inprogress { background: #FCF1E0; color: var(--amber); border: 1px solid var(--amber); }
+.badge-completed  { background: var(--green-lt); color: var(--green); border: 1px solid var(--green); }

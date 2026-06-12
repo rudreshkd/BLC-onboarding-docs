@@ -1,0 +1,229 @@
+/* forms.css — field, choice, sig-area, emp-block, sections, errors */
+
+.section {
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  margin: 0 0 20px;
+  overflow: hidden;
+}
+.section > h2 {
+  margin: 0;
+  background: var(--green-lt);
+  color: var(--green-md);
+  font-size: 15px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section .section-body { padding: 16px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 16px; }
+
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.field label .req-mark { color: var(--red); }
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 16px;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: #fff;
+  min-height: 44px;
+}
+.field textarea { min-height: 88px; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: 3px solid var(--gold);
+  outline-offset: 0;
+  border-color: var(--green);
+}
+
+/* Pre-filled (profile-sourced) fields: dashed border, tinted, read-only */
+.field.prefilled input,
+.field.prefilled textarea {
+  border-style: dashed;
+  background: var(--green-lt);
+  color: var(--green-md);
+}
+
+/* Validation errors */
+.field-error input,
+.field-error select,
+.field-error textarea { border-color: var(--red); background: var(--red-lt, #fee2e2); }
+.error-msg { color: var(--red); font-size: 12px; margin-top: 4px; }
+
+/* Yes/No + radio choices */
+.choice { margin-bottom: 14px; }
+.choice .choice-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+  display: block;
+}
+.choice .options { display: flex; gap: 16px; flex-wrap: wrap; }
+.choice .options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 400;
+  cursor: pointer;
+  min-height: 44px;
+}
+.choice input[type="radio"],
+.checkbox-row input[type="checkbox"] {
+  width: 20px; height: 20px;
+  accent-color: var(--green);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 14.5px;
+}
+.checkbox-row label { cursor: pointer; }
+
+.conditional { display: none; margin-top: 8px; }
+.conditional.visible { display: block; }
+
+/* Declaration boxes */
+.declaration {
+  background: var(--gold-lt);
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.declaration p:first-child { margin-top: 0; }
+.declaration p:last-child { margin-bottom: 0; }
+
+/* Info boxes */
+.info-box {
+  background: var(--green-lt);
+  border-left: 4px solid var(--green);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  color: var(--green-md);
+  margin-bottom: 16px;
+}
+
+/* Consent / data sharing tables */
+.consent-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 16px; }
+.consent-table th, .consent-table td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.consent-table th { background: var(--green-lt); color: var(--green-md); font-family: var(--font-head); }
+.consent-table input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--green); }
+
+/* Repeating entry blocks (employment, gaps, education, referees, contacts) */
+.emp-block {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  position: relative;
+  background: #fff;
+}
+.emp-block .entry-title {
+  font-family: var(--font-head);
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+.emp-block .remove-entry {
+  position: absolute;
+  top: 10px; right: 10px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--red);
+  font-size: 13px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.emp-block .remove-entry:hover { border-color: var(--red); background: var(--red-lt); }
+.add-entry {
+  background: none;
+  border: 2px dashed var(--green);
+  border-radius: 10px;
+  color: var(--green);
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 14px;
+  width: 100%;
+  padding: 12px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  min-height: 44px;
+}
+.add-entry:hover { background: var(--green-lt); }
+
+/* Signature area */
+.sig-area {
+  border: 2px solid var(--green);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 24px;
+  background: var(--green-lt);
+}
+.sig-area h2 { margin: 0 0 8px; font-size: 16px; color: var(--green-md); }
+.sig-area .sig-hint { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+.sig-area input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: var(--font-sig);
+  font-size: 26px;
+  color: var(--green-md);
+  background: #fff;
+  min-height: 56px;
+}
+.sig-area .sig-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+/* Locked / submitted form state */
+.locked-banner {
+  background: var(--gold-lt);
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 14.5px;
+  margin-bottom: 18px;
+}
+.locked-banner strong { color: var(--green-md); }
+.locked .field input,
+.locked .field select,
+.locked .field textarea { background: var(--bg); color: var(--muted); pointer-events: none; }
+.locked .add-entry,
+.locked .remove-entry,
+.locked .sig-area .sig-actions { display: none; }
+
+.sig-display {
+  font-family: var(--font-sig);
+  font-size: 28px;
+  color: var(--green-md);
+}
+
+@media (max-width: 560px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+}
