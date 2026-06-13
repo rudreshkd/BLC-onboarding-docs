@@ -95,6 +95,7 @@ export function wireDashboard() {
     document.getElementById('modal-submit-pack').classList.remove('open'));
   document.getElementById('link-downloads').addEventListener('click', showDownloads);
   document.getElementById('btn-edit-profile').addEventListener('click', () => {
+    fillProfileForm(); // repopulate inputs from saved state each time it opens
     showView('view-profile');
   });
 }
