@@ -29,3 +29,15 @@
 **Context:** On `POST /auth/verify` response, include any saved draft state. On `PATCH /invites/:id/draft`, store an encrypted blob alongside the invite row (add a `draft_blob` BYTEA column to the `invites` table). Clear on pack submission. The client-side draft (TASK 1.4) continues to work as a fast local cache; the server draft is the fallback.
 
 **Depends on:** Phase 3 completion (TASK 3.1 + 3.4), candidate JWT auth (TASK 3.2).
+
+---
+
+## TODO-3: Wire Phase 2 encryption to the live relay (backend)
+
+**What:** Stand up the two endpoints the Phase 2 client already calls: `GET /keys/hr-public` (serves the base64 SPKI from `HR_PUBLIC_KEY`, produced by `hr-keygen.html`) and `PUT /packs/{inviteId}` (accepts the `application/octet-stream` encrypted payload).
+
+**Why:** Phase 2 (TASK 2.1–2.3) is built and verified client-side. `submit.js` builds the ZIP, fetches HR's public key, envelope-encrypts (AES-GCM 256 wrapped with RSA-OAEP 4096), and PUTs the ciphertext. With no backend, `submitPackToHR()` returns `no-backend` and the journey completes locally — the real upload lights up automatically once these endpoints exist, with no client change.
+
+**Context:** Public key endpoint reads `process.env.HR_PUBLIC_KEY` (TASK 3.3). Pack endpoint stores the opaque ciphertext (S3/blob) keyed by `inviteId`, gated on the candidate JWT (TASK 3.2). Decryption happens only in the HR Dashboard with the private key (TASK 2.4 — not yet built).
+
+**Depends on:** Phase 3 (TASK 3.2, 3.3, 3.4). Unblocks TASK 2.4 (HR-side decryption).
