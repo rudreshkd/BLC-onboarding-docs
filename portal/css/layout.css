@@ -260,4 +260,13 @@ h1, h2, h3, h4, label, .btn { font-family: var(--font-head); }
   .card, .form-card { padding: 16px; }
   .form-row { flex-wrap: wrap; }
   .hero { flex-direction: column; text-align: center; }
+
+  /* Topbar: at narrow widths the brand subtitle + two action buttons
+     overflowed and clipped "Sign out" off-screen. Tighten padding, drop the
+     "· Onboarding" subtitle, and let the brand shrink so the actions always fit. */
+  .topbar { padding: 10px 12px; gap: 8px; }
+  .topbar .brand { font-size: 15px; gap: 8px; min-width: 0; }
+  .topbar .brand .subtitle { display: none; }
+  .topbar .actions { gap: 6px; flex: 0 0 auto; }
+  .btn-ghost { padding: 8px 10px; font-size: 14px; }
 }
