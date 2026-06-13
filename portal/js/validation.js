@@ -6,8 +6,10 @@ const ACCOUNT_RE  = /^\d{8}$/;
 const EMAIL_RE    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POSTCODE_RE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
 const MONTH_RE    = /^(0[1-9]|1[0-2])\/\d{4}$/;
+// UK phone: optional +44 or leading 0, then 9–10 digits once separators are stripped.
+const PHONE_RE    = /^(?:\+44|0)\d{9,10}$/;
 
-function setError(input, message) {
+export function setError(input, message) {
   const wrapper = input.closest('.field') || input.parentElement;
   if (!wrapper) return;
   wrapper.classList.add('field-error');
@@ -28,6 +30,41 @@ function setError(input, message) {
   input.addEventListener('change', clear);
 }
 
+// Format-only check: returns an error message string, or null if the value is
+// empty or correctly formatted. Required-ness is handled separately so that
+// live on-blur checks can flag a bad format without nagging about empty fields.
+export function formatError(input) {
+  const value = (input.value || '').trim();
+  if (!value) return null;
+
+  if (input.id === 'ni' || input.dataset.validate === 'ni') {
+    if (!NI_RE.test(value.replace(/\s+/g, '')))
+      return 'Enter a valid NI number — two letters, six digits, one letter';
+  }
+  if (input.id === 'sortCode' || input.dataset.validate === 'sortcode') {
+    if (!SORT_RE.test(value)) return 'Enter a sort code as 00-00-00 or 6 digits';
+  }
+  if (input.id === 'accountNumber' || input.dataset.validate === 'account') {
+    if (!ACCOUNT_RE.test(value)) return 'Account number must be exactly 8 digits';
+  }
+  if (input.type === 'email' || input.dataset.validate === 'email') {
+    if (!EMAIL_RE.test(value)) return 'Enter a valid email address, e.g. name@example.com';
+  }
+  if (input.type === 'tel' || input.dataset.validate === 'phone') {
+    // Strip spaces, hyphens and brackets before matching so 07700 900 123,
+    // (01632) 960123 and +44 7700 900123 all pass.
+    if (!PHONE_RE.test(value.replace(/[\s()-]/g, '')))
+      return 'Enter a valid UK phone number, e.g. 07700 900123';
+  }
+  if (input.id === 'postcode' || input.dataset.validate === 'postcode') {
+    if (!POSTCODE_RE.test(value)) return 'Enter a valid UK postcode, e.g. SW1A 1AA';
+  }
+  if (input.dataset.validate === 'month') {
+    if (!MONTH_RE.test(value)) return 'Use MM/YYYY format, e.g. 03/2021';
+  }
+  return null;
+}
+
 function checkInput(input) {
   const value = (input.value || '').trim();
   const isRequired = input.closest('.field')?.querySelector('label .req-mark') ||
@@ -38,45 +75,25 @@ function checkInput(input) {
     setError(input, 'This field is required');
     return false;
   }
-  if (!value) return true; // optional + empty = fine
 
-  if (input.id === 'ni' || input.dataset.validate === 'ni') {
-    if (!NI_RE.test(value.replace(/\s+/g, ''))) {
-      setError(input, 'Enter a valid NI number — two letters, six digits, one letter');
-      return false;
-    }
-  }
-  if (input.id === 'sortCode' || input.dataset.validate === 'sortcode') {
-    if (!SORT_RE.test(value)) {
-      setError(input, 'Enter a sort code as 00-00-00 or 6 digits');
-      return false;
-    }
-  }
-  if (input.id === 'accountNumber' || input.dataset.validate === 'account') {
-    if (!ACCOUNT_RE.test(value)) {
-      setError(input, 'Account number must be exactly 8 digits');
-      return false;
-    }
-  }
-  if (input.type === 'email') {
-    if (!EMAIL_RE.test(value)) {
-      setError(input, 'Enter a valid email address');
-      return false;
-    }
-  }
-  if (input.id === 'postcode' || input.dataset.validate === 'postcode') {
-    if (!POSTCODE_RE.test(value)) {
-      setError(input, 'Enter a valid UK postcode, e.g. SW1A 1AA');
-      return false;
-    }
-  }
-  if (input.dataset.validate === 'month') {
-    if (!MONTH_RE.test(value)) {
-      setError(input, 'Use MM/YYYY format, e.g. 03/2021');
-      return false;
-    }
-  }
+  const msg = formatError(input);
+  if (msg) { setError(input, msg); return false; }
   return true;
+}
+
+// Live format feedback: as the candidate leaves each field, flag a bad format
+// immediately (phone, email, postcode, NI, etc.) instead of waiting for submit.
+// Empty fields are left alone here — required checks still fire on submit.
+export function wireLiveValidation(root) {
+  if (!root) return;
+  root.addEventListener('focusout', (e) => {
+    const input = e.target;
+    if (!input.matches || !input.matches('input')) return;
+    if (input.type === 'radio' || input.type === 'checkbox') return;
+    if (input.disabled) return;
+    const msg = formatError(input);
+    if (msg) setError(input, msg);
+  });
 }
 
 // Validates the currently rendered form. Returns true if clean.

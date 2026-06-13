@@ -6,6 +6,7 @@ import { saveDraft, clearDraft } from './draft.js';
 import { showView } from './nav.js';
 import { showDownloads } from './downloads.js';
 import { showToast } from './toast.js';
+import { formatError, setError, wireLiveValidation } from './validation.js';
 
 export function badgeHTML(status) {
   // Glyph + text so colour is never the only signal (WCAG)
@@ -126,6 +127,20 @@ export function saveDetails() {
     showToast('Please complete the highlighted fields');
     return;
   }
+
+  // Format checks: phone, email, postcode, NI must be well-formed before saving,
+  // otherwise the bad value pre-fills every downstream form.
+  let formatOk = true;
+  PROFILE_FIELDS.forEach(key => {
+    const el = document.getElementById(`profile-${key}`);
+    if (!el) return;
+    const msg = formatError(el);
+    if (msg) { setError(el, msg); formatOk = false; }
+  });
+  if (!formatOk) {
+    showToast('Please correct the highlighted fields');
+    return;
+  }
   PROFILE_FIELDS.forEach(key => {
     const el = document.getElementById(`profile-${key}`);
     if (el) state.profile[key] = el.value.trim();
@@ -139,4 +154,6 @@ export function saveDetails() {
 
 export function wireProfile() {
   document.getElementById('btn-save-profile').addEventListener('click', saveDetails);
+  // Live format feedback as the candidate leaves each profile field.
+  wireLiveValidation(document.getElementById('view-profile'));
 }

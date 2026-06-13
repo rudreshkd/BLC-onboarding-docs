@@ -6,6 +6,7 @@ import {
   refereeBlock, contactBlock, doseBlock, addEntry, removeEntry,
 } from './entries.js';
 import { wireSignature, reportProgress } from './signature.js';
+import { wireLiveValidation } from './validation.js';
 import { showView } from './nav.js';
 
 /* ---------- field builders ---------- */
@@ -595,6 +596,7 @@ export function openForm(id) {
     sigArea.style.display = 'block';
     wireConditionals(body);
     wireRepeaters(body);
+    wireLiveValidation(body);
     if (id === 'hmrc') wireHmrc(body);
     wireSignature(id);
     if (!sub) {
