@@ -1,0 +1,263 @@
+/* layout.css — page scaffolding: wrap, card, topbar, views, login, dashboard */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, label, .btn { font-family: var(--font-head); }
+
+.stripe {
+  height: 6px;
+  background: var(--stripe);
+}
+
+.topbar {
+  background: var(--green-dk);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+}
+
+.topbar .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 17px;
+}
+
+.topbar .actions { display: flex; gap: 10px; align-items: center; }
+
+.logo-mark { width: 34px; height: 34px; flex: 0 0 auto; }
+
+.wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.view { display: none; }
+.view.active { display: block; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-block;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  background: var(--green);
+  color: #fff;
+  transition: background .15s;
+}
+.btn:hover { background: var(--gold-dk); }
+.btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+.btn-secondary {
+  background: #fff;
+  color: var(--green);
+  border: 2px solid var(--green);
+}
+.btn-secondary:hover { background: var(--green-lt); }
+
+.btn-ghost {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.4);
+  padding: 8px 16px;
+  min-height: 0;
+}
+.btn-ghost:hover { background: rgba(255,255,255,.12); }
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--green);
+  font-family: var(--font-body);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 14px;
+}
+
+/* ---------- Login ---------- */
+.login-hero {
+  text-align: center;
+  padding: 48px 16px 24px;
+}
+.login-hero .logo-mark { width: 84px; height: 84px; }
+.login-hero h1 { margin: 16px 0 4px; color: var(--green-md); }
+.login-hero p { color: var(--muted); margin: 0 0 24px; }
+.login-card { max-width: 420px; margin: 0 auto; text-align: left; }
+
+/* ---------- Dashboard ---------- */
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--green-lt);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.hero h1 { margin: 0 0 4px; font-size: 22px; color: var(--green-md); }
+.hero p  { margin: 0; color: var(--muted); font-size: 14px; }
+
+.progress-track {
+  background: var(--border);
+  border-radius: 999px;
+  height: 12px;
+  overflow: hidden;
+  margin: 12px 0 4px;
+}
+.progress-fill {
+  background: var(--green);
+  height: 100%;
+  border-radius: 999px;
+  transition: width .3s;
+}
+.progress-label { font-size: 13px; color: var(--muted); }
+
+.form-list { list-style: none; margin: 0; padding: 0; }
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 15px;
+  min-height: 44px;
+}
+.form-row:hover { border-color: var(--green); background: var(--green-lt); }
+.form-row:focus-visible { outline: 3px solid var(--gold); outline-offset: 1px; }
+.form-row .meta { display: flex; flex-direction: column; gap: 2px; }
+.form-row .name { font-weight: 600; font-family: var(--font-head); font-size: 15px; }
+.form-row .sub  { font-size: 12.5px; color: var(--muted); }
+.form-row .right { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+
+.submit-pack-area { margin-top: 20px; text-align: center; cursor: pointer; }
+.submit-pack-area .btn { width: 100%; max-width: 420px; font-size: 17px; }
+/* Let clicks on the disabled button reach the area handler (outstanding list) */
+#btn-submit-pack:disabled { pointer-events: none; }
+.outstanding-list {
+  margin-top: 12px;
+  background: var(--gold-lt);
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  padding: 12px 18px;
+  text-align: left;
+  font-size: 14px;
+}
+.outstanding-list ul { margin: 6px 0 0; padding-left: 20px; }
+
+/* ---------- Form view header ---------- */
+.form-header {
+  background: var(--green-dk);
+  color: #fff;
+  border-radius: 12px 12px 0 0;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.form-header h1 { margin: 0; font-size: 19px; flex: 1; }
+.form-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 24px;
+}
+
+/* ---------- Modal ---------- */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(28,26,46,.55);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 60;
+  padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 440px;
+  width: 100%;
+}
+.modal h2 { margin: 0 0 8px; color: var(--green-md); font-size: 19px; }
+.modal p  { margin: 0 0 20px; color: var(--muted); font-size: 14.5px; }
+.modal .modal-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- Success screen ---------- */
+.success-hero { text-align: center; padding: 56px 16px; }
+.success-hero .tick {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-size: 38px;
+  line-height: 72px;
+  margin: 0 auto 18px;
+}
+.success-hero h1 { color: var(--green-md); }
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--green-dk);
+  color: #fff;
+  border-left: 4px solid var(--gold);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14.5px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s, transform .25s;
+  z-index: 80;
+  max-width: 90vw;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 560px) {
+  .wrap { padding: 16px 10px 48px; }
+  .card, .form-card { padding: 16px; }
+  .form-row { flex-wrap: wrap; }
+  .hero { flex-direction: column; text-align: center; }
+}

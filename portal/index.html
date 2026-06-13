@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brighter Living — Onboarding Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/badges.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+  <div class="stripe"></div>
+
+  <div class="topbar">
+    <div class="brand">
+      <svg class="logo-mark" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="12" r="7" fill="#fff"/>
+        <path d="M24 22 C14 22 8 30 8 42 L24 42 Z" fill="#fff" opacity="0.85"/>
+        <path d="M24 22 C34 22 40 30 40 42 L24 42 Z" fill="#3DCFCF"/>
+      </svg>
+      Brighter Living <span style="opacity:.6;font-weight:400">· Onboarding</span>
+    </div>
+    <div class="actions" id="topbar-actions" style="display:none">
+      <button type="button" class="btn-ghost" data-nav="dashboard">Dashboard</button>
+      <button type="button" class="btn-ghost" id="btn-signout">Sign out</button>
+    </div>
+  </div>
+
+  <main class="wrap">
+
+    <!-- ============ LOGIN ============ -->
+    <section class="view" id="view-login" aria-label="Log in">
+      <div class="login-hero">
+        <svg class="logo-mark" viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="12" r="7" fill="#6B35A3"/>
+          <path d="M24 22 C14 22 8 30 8 42 L24 42 Z" fill="#3D1A6B"/>
+          <path d="M24 22 C34 22 40 30 40 42 L24 42 Z" fill="#3DCFCF"/>
+        </svg>
+        <h1>Welcome to Brighter Living</h1>
+        <p>Complete your onboarding forms online — no printing, no scanning.</p>
+      </div>
+      <div class="card login-card">
+        <div class="field">
+          <label for="login-email">Your email address</label>
+          <input type="email" id="login-email" autocomplete="email" placeholder="you@example.com">
+        </div>
+        <button type="button" class="btn" id="btn-send-link" style="width:100%">Email me a magic link</button>
+      </div>
+    </section>
+
+    <!-- ============ CHECK EMAIL ============ -->
+    <section class="view" id="view-check-email" aria-label="Check your email">
+      <div class="card login-card" style="text-align:center">
+        <h1 style="color:var(--green-md)">Check your email</h1>
+        <p style="color:var(--muted)">We've sent a secure sign-in link to your inbox.
+          It's valid for 7 days and can only be used once.</p>
+        <!-- Simulated until the Phase 3 backend sends real email -->
+        <button type="button" class="btn" id="btn-open-link" style="width:100%">Open magic link (simulated)</button>
+        <button type="button" class="btn-link" id="btn-resend-link">Resend link</button>
+      </div>
+    </section>
+
+    <!-- ============ DASHBOARD ============ -->
+    <section class="view" id="view-dashboard" aria-label="Your onboarding dashboard">
+      <div class="hero">
+        <svg class="logo-mark" viewBox="0 0 48 48" aria-hidden="true" style="width:48px;height:48px">
+          <circle cx="24" cy="12" r="7" fill="#6B35A3"/>
+          <path d="M24 22 C14 22 8 30 8 42 L24 42 Z" fill="#3D1A6B"/>
+          <path d="M24 22 C34 22 40 30 40 42 L24 42 Z" fill="#3DCFCF"/>
+        </svg>
+        <div style="flex:1">
+          <h1 id="dash-welcome">Welcome!</h1>
+          <p id="dash-deadline"></p>
+          <div class="progress-track" role="progressbar" aria-labelledby="dash-progress-label">
+            <div class="progress-fill" id="dash-progress-fill" style="width:0%"></div>
+          </div>
+          <span class="progress-label" id="dash-progress-label">0 of 15 forms complete</span>
+        </div>
+        <button type="button" class="btn btn-secondary" id="btn-edit-profile">Edit profile</button>
+      </div>
+
+      <ul class="form-list" id="dash-form-list"></ul>
+
+      <div class="submit-pack-area" id="submit-pack-area">
+        <button type="button" class="btn" id="btn-submit-pack" disabled>Submit pack to HR</button>
+        <div class="outstanding-list" id="outstanding-list" style="display:none"></div>
+        <p><button type="button" class="btn-link" id="link-downloads">Download your forms</button></p>
+      </div>
+    </section>
+
+    <!-- ============ PROFILE ============ -->
+    <section class="view" id="view-profile" aria-label="Your profile">
+      <div class="form-header">
+        <button type="button" class="btn-ghost" data-nav="dashboard">&larr; Dashboard</button>
+        <h1>Your profile — fill this in once</h1>
+      </div>
+      <div class="form-card">
+        <div class="info-box">These details automatically pre-fill every form, so you never
+          have to type them twice. You can come back and edit them at any time.</div>
+        <div class="grid-3">
+          <div class="field"><label for="profile-title">Title</label>
+            <select id="profile-title"><option value="">—</option><option>Mr</option><option>Mrs</option><option>Miss</option><option>Ms</option><option>Mx</option><option>Dr</option></select></div>
+          <div class="field"><label for="profile-firstName">First name <span class="req-mark">*</span></label>
+            <input type="text" id="profile-firstName" autocomplete="given-name"></div>
+          <div class="field"><label for="profile-lastName">Last name <span class="req-mark">*</span></label>
+            <input type="text" id="profile-lastName" autocomplete="family-name"></div>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label for="profile-dob">Date of birth <span class="req-mark">*</span></label>
+            <input type="date" id="profile-dob" autocomplete="bday"></div>
+          <div class="field"><label for="profile-sex">Sex</label>
+            <select id="profile-sex"><option value="">—</option><option>Female</option><option>Male</option><option>Prefer not to say</option></select></div>
+          <div class="field"><label for="profile-ni">National Insurance number <span class="req-mark">*</span></label>
+            <input type="text" id="profile-ni" data-validate="ni" placeholder="QQ123456C"></div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label for="profile-addr1">Address line 1 <span class="req-mark">*</span></label>
+            <input type="text" id="profile-addr1" autocomplete="address-line1"></div>
+          <div class="field"><label for="profile-addr2">Address line 2</label>
+            <input type="text" id="profile-addr2" autocomplete="address-line2"></div>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label for="profile-city">Town / city <span class="req-mark">*</span></label>
+            <input type="text" id="profile-city" autocomplete="address-level2"></div>
+          <div class="field"><label for="profile-county">County</label>
+            <input type="text" id="profile-county"></div>
+          <div class="field"><label for="profile-postcode">Postcode <span class="req-mark">*</span></label>
+            <input type="text" id="profile-postcode" data-validate="postcode" autocomplete="postal-code"></div>
+        </div>
+        <div class="grid-3">
+          <div class="field"><label for="profile-mobile">Mobile number <span class="req-mark">*</span></label>
+            <input type="tel" id="profile-mobile" autocomplete="tel"></div>
+          <div class="field"><label for="profile-homePhone">Home phone</label>
+            <input type="tel" id="profile-homePhone" autocomplete="tel-national"></div>
+          <div class="field"><label for="profile-email">Email address <span class="req-mark">*</span></label>
+            <input type="email" id="profile-email" autocomplete="email"></div>
+        </div>
+        <button type="button" class="btn" id="btn-save-profile">Save profile</button>
+      </div>
+    </section>
+
+    <!-- ============ FORM ============ -->
+    <section class="view" id="view-form" aria-label="Form">
+      <div class="form-header">
+        <button type="button" class="btn-ghost" id="btn-back-dashboard">&larr; Dashboard</button>
+        <svg class="logo-mark" viewBox="0 0 48 48" aria-hidden="true" style="width:28px;height:28px">
+          <circle cx="24" cy="12" r="7" fill="#fff"/>
+          <path d="M24 22 C14 22 8 30 8 42 L24 42 Z" fill="#fff" opacity="0.85"/>
+          <path d="M24 22 C34 22 40 30 40 42 L24 42 Z" fill="#3DCFCF"/>
+        </svg>
+        <h1 id="form-title">Form</h1>
+      </div>
+      <div class="form-card">
+        <div class="locked-banner" id="form-locked-banner" style="display:none"></div>
+        <div id="form-body"></div>
+        <div class="sig-area" id="sig-area">
+          <h2>Sign this form</h2>
+          <p class="sig-hint">Type your full legal name. Your typed name, the date, and (in
+            production) your IP address are recorded as your electronic signature.</p>
+          <label for="sig-input" class="sr-only" style="position:absolute;left:-9999px">Signature — type your full name</label>
+          <input type="text" id="sig-input" placeholder="Type your full name" autocomplete="off">
+          <div class="sig-actions">
+            <button type="button" class="btn" id="btn-done" disabled>Done — submit this form</button>
+            <button type="button" class="btn btn-secondary" id="btn-save-close">Save &amp; close</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DOWNLOADS ============ -->
+    <section class="view" id="view-downloads" aria-label="Download your forms">
+      <div class="form-header">
+        <button type="button" class="btn-ghost" data-nav="dashboard">&larr; Dashboard</button>
+        <h1>Download your forms</h1>
+      </div>
+      <div class="form-card">
+        <div class="info-box">Completed forms include your answers and signature. Forms you
+          haven't finished yet download as blank templates.</div>
+        <div id="downloads-list"></div>
+        <div class="sig-actions" style="margin-top:20px">
+          <button type="button" class="btn" id="btn-download-flat">Download all files (ZIP)</button>
+          <button type="button" class="btn btn-secondary" id="btn-download-folders">Download folder structure (ZIP)</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SUCCESS ============ -->
+    <section class="view" id="view-success" aria-label="Pack submitted">
+      <div class="success-hero">
+        <div class="tick" aria-hidden="true">&#10003;</div>
+        <h1>Your pack has been sent to HR</h1>
+        <p style="color:var(--muted)">Thank you — all 15 forms have been submitted.
+          HR will be in touch before your start date.</p>
+        <p><button type="button" class="btn btn-secondary" data-nav="dashboard">Back to dashboard</button></p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Submit pack confirmation modal -->
+  <div class="modal-overlay" id="modal-submit-pack" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <h2 id="modal-title">Are you sure?</h2>
+      <p>This will send your completed pack of 15 forms to HR. You won't be able to change
+        your answers afterwards.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="btn-modal-yes">Yes, submit</button>
+        <button type="button" class="btn btn-secondary" id="btn-modal-back">Go back</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
