@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HR Key Setup — Brighter Living Onboarding</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: var(--font-body); line-height: 1.5;
+    }
+    h1, h2, .btn { font-family: var(--font-head); }
+    .stripe { height: 6px; background: var(--stripe); }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 32px 16px 64px; }
+    .card {
+      background: #fff; border: 1px solid var(--border); border-radius: 12px;
+      padding: 24px; margin-bottom: 16px;
+    }
+    h1 { color: var(--green-md); margin: 16px 0 4px; }
+    .lead { color: var(--muted); margin: 0 0 24px; }
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 50%; background: var(--green);
+      color: #fff; font-weight: 600; font-family: var(--font-head); margin-right: 8px;
+    }
+    h2 { font-size: 18px; display: flex; align-items: center; margin: 0 0 12px; }
+    .btn {
+      border: none; border-radius: 8px; padding: 12px 22px; font-size: 15px;
+      font-weight: 600; cursor: pointer; min-height: 44px; background: var(--green);
+      color: #fff; transition: background .15s;
+    }
+    .btn:hover { background: var(--gold-dk); }
+    .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+    .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+    .btn-secondary { background: #fff; color: var(--green); border: 2px solid var(--green); }
+    .btn-secondary:hover { background: var(--green-lt); }
+    textarea {
+      width: 100%; min-height: 130px; margin-top: 10px; padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+      border: 1px solid var(--border); border-radius: 8px; resize: vertical; word-break: break-all;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+    .muted-step { opacity: .5; }
+    .muted-step .step-num { background: var(--border); color: var(--muted); }
+    .warning {
+      background: var(--gold-lt); border: 1px solid var(--gold); border-left: 4px solid var(--gold);
+      border-radius: 8px; padding: 14px 16px; margin-top: 14px; font-size: 14.5px;
+    }
+    .warning strong { color: var(--green-dk); }
+    .status { font-size: 13.5px; color: var(--muted); margin-top: 8px; min-height: 18px; }
+    .ok { color: var(--green); font-weight: 600; }
+    .err { color: #b00020; font-weight: 600; }
+    .offline-note { font-size: 12.5px; color: var(--muted); margin-top: 24px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="stripe"></div>
+  <div class="wrap">
+    <h1>HR Key Setup</h1>
+    <p class="lead">Brighter Living Onboarding — one-time administrator utility.
+      Generate the encryption keys that protect candidate packs. Run this once,
+      then keep the private key safe.</p>
+
+    <!-- Step 1 -->
+    <div class="card">
+      <h2><span class="step-num">1</span>Generate your key pair</h2>
+      <p>This creates an RSA-OAEP 4096-bit key pair in your browser. Nothing is sent
+        over the network.</p>
+      <button type="button" class="btn" id="btn-generate">Generate key pair</button>
+      <div class="status" id="gen-status"></div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="card muted-step" id="step-public">
+      <h2><span class="step-num">2</span>Copy the public key</h2>
+      <p>Paste this into the server configuration (<code>HR_PUBLIC_KEY</code>). It is
+        safe to share — it can only encrypt, never decrypt.</p>
+      <textarea id="public-key" readonly placeholder="Your public key will appear here after step 1."></textarea>
+      <div class="row">
+        <button type="button" class="btn btn-secondary" id="btn-copy" disabled>Copy public key</button>
+        <span class="status" id="copy-status"></span>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="card muted-step" id="step-private">
+      <h2><span class="step-num">3</span>Download your private key</h2>
+      <p>This is the only copy. You will need it to decrypt candidate packs in the HR
+        Dashboard.</p>
+      <button type="button" class="btn" id="btn-download" disabled>Download private key</button>
+      <div class="warning">
+        <strong>Store this file securely. Do not upload it anywhere.</strong>
+        You will need it to decrypt candidate packs in the HR Dashboard. If you lose it,
+        packs encrypted with this key pair cannot be recovered.
+      </div>
+      <div class="status" id="dl-status"></div>
+    </div>
+
+    <p class="offline-note">This page makes no network requests. You can run it offline.</p>
+  </div>
+
+  <script>
+    const RSA_PARAMS = {
+      name: 'RSA-OAEP', modulusLength: 4096,
+      publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256',
+    };
+
+    function bufToB64(buf) {
+      const bytes = new Uint8Array(buf);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin);
+    }
+
+    const $ = id => document.getElementById(id);
+    let privateKeyB64 = null;
+
+    $('btn-generate').addEventListener('click', async () => {
+      const status = $('gen-status');
+      $('btn-generate').disabled = true;
+      status.textContent = 'Generating 4096-bit key pair… this can take a few seconds.';
+      status.className = 'status';
+      try {
+        const keyPair = await crypto.subtle.generateKey(RSA_PARAMS, true, ['encrypt', 'decrypt']);
+        const spki = await crypto.subtle.exportKey('spki', keyPair.publicKey);
+        const pkcs8 = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+
+        $('public-key').value = bufToB64(spki);
+        privateKeyB64 = bufToB64(pkcs8);
+
+        $('btn-copy').disabled = false;
+        $('btn-download').disabled = false;
+        $('step-public').classList.remove('muted-step');
+        $('step-private').classList.remove('muted-step');
+        status.textContent = 'Key pair generated. Complete steps 2 and 3.';
+        status.className = 'status ok';
+      } catch (e) {
+        status.textContent = 'Key generation failed: ' + e.message;
+        status.className = 'status err';
+        $('btn-generate').disabled = false;
+      }
+    });
+
+    $('btn-copy').addEventListener('click', async () => {
+      const cs = $('copy-status');
+      try {
+        await navigator.clipboard.writeText($('public-key').value);
+        cs.textContent = 'Copied to clipboard.';
+        cs.className = 'status ok';
+      } catch {
+        // Clipboard API can be blocked (e.g. file://). Fall back to manual select.
+        $('public-key').select();
+        cs.textContent = 'Press Ctrl/Cmd+C to copy the selected text.';
+        cs.className = 'status';
+      }
+    });
+
+    $('btn-download').addEventListener('click', () => {
+      if (!privateKeyB64) return;
+      const blob = new Blob([JSON.stringify({ privateKey: privateKeyB64 }, null, 2)],
+        { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'brighter-living-hr-private-key.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      $('dl-status').textContent = 'Downloaded brighter-living-hr-private-key.json — store it securely now.';
+      $('dl-status').className = 'status ok';
+    });
+  </script>
+</body>
+</html>

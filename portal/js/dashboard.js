@@ -7,6 +7,7 @@ import { showView } from './nav.js';
 import { showDownloads } from './downloads.js';
 import { showToast } from './toast.js';
 import { formatError, setError, wireLiveValidation } from './validation.js';
+import { submitPackToHR } from './submit.js';
 
 export function badgeHTML(status) {
   // Glyph + text so colour is never the only signal (WCAG)
@@ -76,11 +77,35 @@ export function confirmSubmitPack() {
 
 export async function submitPack() {
   document.getElementById('modal-submit-pack').classList.remove('open');
-  // Phase 2 adds: buildZip → encryptPack → upload to relay. For now the pack
-  // is recorded locally and the encrypted draft is cleared (TASK 1.4).
-  state.packSubmitted = true;
-  await clearDraft();
-  showView('view-success');
+  const btn = document.getElementById('btn-submit-pack');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Encrypting and sending…';
+
+  try {
+    // Phase 2 (TASK 2.3): buildZip → fetch HR key → encryptPack → PUT to relay.
+    const result = await submitPackToHR();
+
+    if (result.status === 'offline') {
+      // Pack is ready; retry automatically when the connection returns.
+      showToast('You appear to be offline. Your pack will be sent when you reconnect.');
+      window.addEventListener('online', () => { submitPack(); }, { once: true });
+      btn.disabled = false;
+      btn.textContent = original;
+      return;
+    }
+
+    // 'uploaded' (relay accepted it) or 'no-backend' (relay not deployed yet) —
+    // either way the candidate's journey is complete. Clear the encrypted draft.
+    state.packSubmitted = true;
+    await clearDraft();
+    showView('view-success');
+  } catch {
+    // Reachable relay returned an error: keep the draft, let them retry.
+    showToast('Upload failed — please try again');
+    btn.disabled = false;
+    btn.textContent = original;
+  }
 }
 
 export function wireDashboard() {
