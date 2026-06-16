@@ -481,11 +481,20 @@ export async function downloadPack(inviteId, candidateName) {
 
 ---
 
-## PHASE 3 — Invite & Identity Service
+## PHASE 3 — Invite & Identity Service ✅ *complete*
+
+> **Built (2026-06-16):** Node.js 22 + Fastify service under `backend/`. Build decisions from
+> the engineering review: **(D1)** Homebrew Postgres locally + a portable `pg`-based migration
+> runner (not `psql`) + managed Postgres in prod via `DATABASE_URL`; **(D2)** storage/KMS behind
+> adapter interfaces with local-only impls (filesystem + local AES key-wrapping), concrete AWS
+> S3/KMS deferred to deploy; **(D3)** `POST /hr/auth/login` pulled forward from TASK 4.1 (the
+> HR-gated endpoints need an HR JWT); **(D4)** minimal `portal/js/auth.js` wiring so the portal
+> reads `?token=` on page load, verifies, and sets `state.session`. 38 tests pass
+> (`npm test`, serialized). See `backend/README.md`.
 
 ---
 
-### TASK 3.1 — Database schema and migrations
+### TASK 3.1 — Database schema and migrations ✅
 
 **What to build**
 PostgreSQL schema for the Invite & Identity Service. Two tables only — no form-answer columns.
@@ -555,7 +564,7 @@ Run with: `psql $DATABASE_URL -f migrations/001_create_invites.sql` etc.
 
 ---
 
-### TASK 3.2 — Magic-link API: issue and verify endpoints
+### TASK 3.2 — Magic-link API: issue and verify endpoints ✅
 
 **What to build**
 Two HTTP endpoints in Node.js (Fastify) or Python (FastAPI):
@@ -610,7 +619,7 @@ Logic:
 
 ---
 
-### TASK 3.3 — Relay upload/download endpoints with KMS encryption at rest
+### TASK 3.3 — Relay upload/download endpoints with KMS encryption at rest ✅
 
 **What to build**
 Two endpoints extending the same service from TASK 3.2. The server handles all encryption;
@@ -669,7 +678,7 @@ AWS_SECRET_ACCESS_KEY=...
 
 ---
 
-### TASK 3.4 — Invite CRUD endpoints (for HR Dashboard)
+### TASK 3.4 — Invite CRUD endpoints (for HR Dashboard) ✅
 
 **What to build**
 The remaining API surface used by the HR Admin Dashboard.
@@ -760,7 +769,7 @@ Logic:
 
 ---
 
-### TASK 3.5 — Scheduled metadata purge job
+### TASK 3.5 — Scheduled metadata purge job ✅
 
 **What to build**
 A cron job (or scheduled function) that purges stale invite metadata from the `invites` and
@@ -1261,11 +1270,11 @@ Content-Type: application/octet-stream   (reject anything else with 415)
 | ~~2.2 Client-side encryption module~~ | *removed — superseded by server-side KMS* |
 | 2.3 Pack build + relay upload ✅ | §3.2 data flow (package + hand-off steps) |
 | 2.4 HR authenticated pack download | §3.2 data flow (retrieve step), §6.4 |
-| 3.1 DB schema | §3.3 metadata store, §4.1 data lifecycle |
-| 3.2 Magic-link endpoints | §5.1 authentication, §8 service interfaces |
-| 3.3 Key + relay endpoints | §3.3 stack, §7.1, §8 |
-| 3.4 Invite CRUD | §6 HR dashboard, §8 |
-| 3.5 Scheduled metadata purge | §4.1 data lifecycle ("purged on a scheduled job") |
+| 3.1 DB schema ✅ | §3.3 metadata store, §4.1 data lifecycle |
+| 3.2 Magic-link endpoints ✅ | §5.1 authentication, §8 service interfaces |
+| 3.3 Relay endpoints (server-side KMS) ✅ | §3.3 stack, §7.1, §8 |
+| 3.4 Invite CRUD ✅ | §6 HR dashboard, §8 |
+| 3.5 Scheduled metadata purge ✅ | §4.1 data lifecycle ("purged on a scheduled job") |
 | 4.1 HR shell + login + metrics | §6.1, §6.2 |
 | 4.2 Submission tracking matrix | §6.3 |
 | 4.3 Record inspector | §6.4 |

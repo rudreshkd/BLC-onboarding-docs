@@ -1,0 +1,22 @@
+{
+  "name": "brighter-living-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Brighter Living — Invite & Identity Service (Phase 3)",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "migrate": "node scripts/migrate.js",
+    "purge": "node scripts/purge-old-invites.js",
+    "test": "node --test --test-concurrency=1"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "fastify": "^4.28.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.12.0"
+  }
+}
