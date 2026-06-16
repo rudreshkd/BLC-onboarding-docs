@@ -41,3 +41,19 @@
 **Context (PUT):** Generate a per-pack data key via KMS `GenerateDataKey`, AES-GCM the ZIP with it, store `{ ciphertext, wrappedDataKey }` in S3/blob keyed by `inviteId`, gated on the candidate JWT (TASK 3.2). **Context (GET):** authz check + audit log every access, KMS `Decrypt` the wrapped data key, decrypt and stream. Use a real cloud KMS (AWS/GCP), least-privilege IAM, retention/deletion policy. This replaces the deleted `hr-keygen.html` / client `crypto.js` / `GET /keys/hr-public` approach and the planned client-side TASK 2.4 decryption dashboard (now a server-side authenticated download).
 
 **Depends on:** Phase 3 (TASK 3.2, 3.4) + KMS provisioning.
+
+---
+
+## TODO-4: Multi-user HR identity (per-user accounts)
+
+**What:** Replace the single shared `HR_EMAIL`/`HR_PASSWORD_HASH` login with per-user HR accounts so `audit_log.actor` (`hr:{user_id}`) identifies *who* downloaded or confirmed receipt of each pack.
+
+**Why:** A care home has multiple managers. The audit trail Phase 3 builds (`pack_downloaded`, `pack_received`, `pack_purged`) attributes every action to one shared identity, which is meaningless for CQC/GDPR accountability — you can't show who accessed a candidate's data.
+
+**Pros:** Real per-person traceability; the schema is already ready (`audit_log.actor` encodes a user id); builds on existing JWT `role:hr` auth.
+
+**Cons:** Needs an `hr_users` table + password management UI; pulls some Phase 4 dashboard work forward.
+
+**Context:** TASK 4.1 deliberately specs the single hardcoded account "for now". Phase 3 implements `POST /hr/auth/login` against env vars (`backend/src/routes/hr.js`) and mints `{sub: HR_USER_ID, role:'hr'}`. To make the audit trail trustworthy, add an `hr_users` table (email, bcrypt hash, id), authenticate against it, and put the real user id in the JWT `sub`. Start from `backend/src/routes/hr.js`.
+
+**Depends on:** Phase 3 completion + Phase 4 dashboard (TASK 4.1).
