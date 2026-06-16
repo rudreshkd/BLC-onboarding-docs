@@ -1,55 +1,48 @@
-// submit.js — build, encrypt, and upload the completed pack to HR (TASK 2.3)
+// submit.js — build and upload the completed pack to HR (TASK 2.3)
 //
-// Sequence: build the foldered ZIP → fetch HR's public key → envelope-encrypt →
-// PUT the ciphertext to the relay. The candidate's browser only ever holds the
-// public key, so the pack is unreadable to anyone but HR.
+// The candidate's browser builds the foldered ZIP and PUTs it over HTTPS. The
+// server encrypts the pack at rest with a managed KMS key and gates HR download
+// behind authentication + audit (Phase 3). No encryption keys are handled in the
+// browser — HR never custodies a key file.
 //
-// The relay and key endpoints (GET /keys/hr-public, PUT /packs/{id}) arrive with
-// the Phase 3 backend. Until then submitPackToHR returns { status: 'no-backend' }
-// so the candidate journey still completes locally; the real upload lights up the
-// moment the backend is deployed, with no further client changes.
+// The relay endpoint (PUT /packs/{id}) arrives with the Phase 3 backend. Until
+// then submitPackToHR returns { status: 'no-backend' } so the candidate journey
+// still completes locally; the real upload lights up when the backend deploys.
 
 import { state } from './state.js';
 import { buildZip } from './downloads.js';
-import { fetchHRPublicKey, encryptPack, serialiseEncrypted } from './crypto.js';
-
-// Build the foldered ZIP and envelope-encrypt it. Returns the serialised payload
-// ArrayBuffer, or null if HR's public key isn't available yet (backend absent).
-async function buildEncryptedPayload() {
-  const zipBlob = await buildZip(true);
-  const zipBuffer = await zipBlob.arrayBuffer();
-
-  let hrPublicKey;
-  try {
-    hrPublicKey = await fetchHRPublicKey();
-  } catch {
-    return null; // key endpoint not deployed yet
-  }
-
-  const encrypted = await encryptPack(zipBuffer, hrPublicKey);
-  return serialiseEncrypted(encrypted);
-}
 
 // Returns one of:
-//   { status: 'uploaded' }    — encrypted pack PUT to the relay successfully
-//   { status: 'no-backend' }  — relay/key endpoint not deployed; complete locally
+//   { status: 'uploaded' }    — pack PUT to the relay successfully
+//   { status: 'no-backend' }  — relay route not deployed; complete locally
 //   { status: 'offline' }     — browser is offline; caller retries on reconnect
-// Throws only on a real upload failure against a reachable relay (caller shows a toast).
+// Throws only on a real upload failure against a reachable relay (caller toasts).
 export async function submitPackToHR() {
   if (navigator.onLine === false) return { status: 'offline' };
 
-  const payload = await buildEncryptedPayload();
-  if (!payload) return { status: 'no-backend' };
-
+  const zipBlob = await buildZip(true); // foldered structure
   const inviteId = state.session?.inviteId;
-  const res = await fetch(`/packs/${inviteId}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/octet-stream',
-      'Authorization': `Bearer ${state.session?.token}`,
-    },
-    body: payload,
-  });
+
+  let res;
+  try {
+    res = await fetch(`/packs/${inviteId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/zip',
+        'Authorization': `Bearer ${state.session?.token}`,
+      },
+      body: zipBlob,
+    });
+  } catch {
+    return { status: 'no-backend' }; // network/route absent — relay not deployed
+  }
+
+  // A static host (no relay yet) answers PUT with 404/405/501. Treat those as
+  // "backend not deployed" so the demo completes; a deployed relay's 5xx is a
+  // genuine error the caller surfaces and we keep the draft.
+  if (res.status === 404 || res.status === 405 || res.status === 501) {
+    return { status: 'no-backend' };
+  }
   if (!res.ok) throw new Error('Upload failed');
   return { status: 'uploaded' };
 }

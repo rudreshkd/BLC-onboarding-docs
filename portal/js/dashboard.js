@@ -83,7 +83,7 @@ export async function submitPack() {
   btn.textContent = 'Encrypting and sending…';
 
   try {
-    // Phase 2 (TASK 2.3): buildZip → fetch HR key → encryptPack → PUT to relay.
+    // TASK 2.3: buildZip → PUT to relay over HTTPS (server encrypts at rest, Phase 3).
     const result = await submitPackToHR();
 
     if (result.status === 'offline') {

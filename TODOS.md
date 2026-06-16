@@ -32,12 +32,12 @@
 
 ---
 
-## TODO-3: Wire Phase 2 encryption to the live relay (backend)
+## TODO-3: Server-side pack encryption at rest (KMS) + authenticated HR download
 
-**What:** Stand up the two endpoints the Phase 2 client already calls: `GET /keys/hr-public` (serves the base64 SPKI from `HR_PUBLIC_KEY`, produced by `hr-keygen.html`) and `PUT /packs/{inviteId}` (accepts the `application/octet-stream` encrypted payload).
+**What:** Stand up `PUT /packs/{inviteId}` to receive the candidate's ZIP over HTTPS and encrypt it at rest with a managed KMS key. Stand up an authenticated `GET /packs/{inviteId}` that decrypts on the fly and streams the pack to HR.
 
-**Why:** Phase 2 (TASK 2.1–2.3) is built and verified client-side. `submit.js` builds the ZIP, fetches HR's public key, envelope-encrypts (AES-GCM 256 wrapped with RSA-OAEP 4096), and PUTs the ciphertext. With no backend, `submitPackToHR()` returns `no-backend` and the journey completes locally — the real upload lights up automatically once these endpoints exist, with no client change.
+**Why:** We chose server-side encryption at rest over client-side zero-knowledge keys (decision 2026-06-16). Non-technical care-home HR cannot safely custody a private-key file — losing it loses every pack, mishandling it silently breaks confidentiality. GDPR/CQC do not require zero-knowledge. KMS gives recovery, rotation, IAM, and audit, and HR never touches a key. `submit.js` now just builds the ZIP and PUTs it; `submitPackToHR()` returns `no-backend` until the relay exists, so the journey completes locally meanwhile.
 
-**Context:** Public key endpoint reads `process.env.HR_PUBLIC_KEY` (TASK 3.3). Pack endpoint stores the opaque ciphertext (S3/blob) keyed by `inviteId`, gated on the candidate JWT (TASK 3.2). Decryption happens only in the HR Dashboard with the private key (TASK 2.4 — not yet built).
+**Context (PUT):** Generate a per-pack data key via KMS `GenerateDataKey`, AES-GCM the ZIP with it, store `{ ciphertext, wrappedDataKey }` in S3/blob keyed by `inviteId`, gated on the candidate JWT (TASK 3.2). **Context (GET):** authz check + audit log every access, KMS `Decrypt` the wrapped data key, decrypt and stream. Use a real cloud KMS (AWS/GCP), least-privilege IAM, retention/deletion policy. This replaces the deleted `hr-keygen.html` / client `crypto.js` / `GET /keys/hr-public` approach and the planned client-side TASK 2.4 decryption dashboard (now a server-side authenticated download).
 
-**Depends on:** Phase 3 (TASK 3.2, 3.3, 3.4). Unblocks TASK 2.4 (HR-side decryption).
+**Depends on:** Phase 3 (TASK 3.2, 3.4) + KMS provisioning.
