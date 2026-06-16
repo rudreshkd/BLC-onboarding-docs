@@ -347,203 +347,137 @@ The portal continues to work standalone — the API call is additive.
 
 ---
 
-## PHASE 2 — Client-side Encryption + Relay
+## PHASE 2 — Pack Build + Relay Upload
+
+> **Architecture decision (2026-06-16):** Phase 2 originally planned client-side zero-knowledge
+> encryption (RSA-OAEP envelope encryption in the browser, private key custodied by HR).
+> This was reversed before landing. Non-technical care-home HR cannot safely custody a private
+> key file — losing it loses every pack; mishandling it silently breaks confidentiality.
+> GDPR/CQC do not require zero-knowledge. Server-side KMS gives key recovery, rotation, IAM,
+> and audit, and HR never touches a key.
+>
+> **TASKs 2.1 and 2.2 are removed.** `hr-keygen.html` and `js/crypto.js` were built, verified,
+> and then deleted. TASK 2.3 is simplified. TASK 2.4 becomes a server-side authenticated
+> download (no client-side decryption). Server encryption is specified in TASK 3.3.
 
 ---
 
-### TASK 2.1 — HR key pair generation utility
+### ~~TASK 2.1 — HR key pair generation utility~~ *(removed)*
 
-**What to build**
-A standalone single-page tool (`hr-keygen.html`) that HR uses once to generate their
-RSA-OAEP key pair, export the public key for uploading to the server, and store the
-private key safely.
-
-**This is a one-time admin utility, not part of the candidate journey.**
-
-**Page layout**
-- Heading: "HR Key Setup — Brighter Living Onboarding"
-- Step 1 button: "Generate key pair" — calls `generateKeyPair()`.
-- Step 2: Shows the exported public key as a base64 string in a `<textarea>` with a
-  "Copy public key" button. This string is pasted into the server config (TASK 3.3).
-- Step 3: "Download private key" button — downloads a JSON file
-  `brighter-living-hr-private-key.json` containing `{ privateKey: '<base64 PKCS#8>' }`.
-  Displays a warning: "Store this file securely. Do not upload it anywhere. You will need
-  it to decrypt candidate packs in the HR Dashboard."
-
-**Key spec**
-```javascript
-const keyPair = await crypto.subtle.generateKey(
-  { name: 'RSA-OAEP', modulusLength: 4096, publicExponent: new Uint8Array([1, 0, 1]),
-    hash: 'SHA-256' },
-  true,   // extractable
-  ['encrypt', 'decrypt']
-);
-// Export public key as SPKI → base64
-// Export private key as PKCS8 → base64 → JSON file download
-```
-
-**Acceptance criteria**
-- Clicking "Generate key pair" produces a public key string and enables the download button.
-- The downloaded JSON contains a valid PKCS#8 private key that can be re-imported with
-  `crypto.subtle.importKey('pkcs8', ...)`.
-- No network requests are made by this page.
-
-**Dependencies:** none (standalone utility).
+Superseded by server-side KMS. `hr-keygen.html` has been deleted from the repository.
 
 ---
 
-### TASK 2.2 — Client-side pack encryption module
+### ~~TASK 2.2 — Client-side pack encryption module~~ *(removed)*
 
-**What to build**
-A `js/crypto.js` module in the candidate portal that encrypts the completed ZIP blob before
-it is uploaded to the relay.
-
-**New file: `js/crypto.js`**
-
-```javascript
-// crypto.js — envelope encryption using Web Crypto API
-
-// Fetch HR's public key from the server endpoint GET /keys/hr-public
-// Returns a CryptoKey object (RSA-OAEP, SHA-256)
-export async function fetchHRPublicKey() { ... }
-
-// Import a raw RSA-OAEP public key from a base64 SPKI string
-export async function importPublicKey(base64spki) { ... }
-
-// Envelope-encrypt an ArrayBuffer:
-//   1. Generate a random 256-bit AES-GCM content key
-//   2. Encrypt the payload with AES-GCM (random 96-bit IV)
-//   3. Wrap the AES key with the RSA-OAEP public key
-//   4. Return { wrappedKey: Uint8Array, iv: Uint8Array, ciphertext: Uint8Array }
-export async function encryptPack(plaintext, hrPublicKey) { ... }
-
-// Serialise the encrypted result to a single ArrayBuffer for upload:
-//   Layout: [4 bytes: wrappedKey length][wrappedKey][12 bytes: IV][ciphertext]
-export function serialiseEncrypted({ wrappedKey, iv, ciphertext }) { ... }
-
-// Inverse: parse the ArrayBuffer back into { wrappedKey, iv, ciphertext }
-export function deserialiseEncrypted(buffer) { ... }
-```
-
-**Algorithm constants**
-- Content encryption: AES-GCM, 256-bit key, 96-bit random IV.
-- Key wrapping: RSA-OAEP, SHA-256, 4096-bit key (matching TASK 2.1).
-
-**Acceptance criteria**
-- `encryptPack(someUint8Array, publicKey)` returns an object with `wrappedKey`, `iv`,
-  `ciphertext` — all `Uint8Array`.
-- `serialiseEncrypted` + `deserialiseEncrypted` round-trip correctly.
-- The function can be tested in the browser console without any server.
-
-**Dependencies:** TASK 2.1 (for the key spec), TASK 1.1.
+Superseded by server-side KMS. `js/crypto.js` has been deleted from the repository.
 
 ---
 
-### TASK 2.3 — Pack build, encrypt, and upload on final submit
+### TASK 2.3 — Pack build and upload on final submit ✅ *complete*
 
-**What to build**
-Wire together pack building, encryption, and relay upload so that clicking "Submit pack
-to HR" on the dashboard triggers the full sequence.
+**What was built**
+`js/submit.js` — wires pack building and relay upload so that clicking "Submit pack to HR"
+on the dashboard triggers the full sequence. The browser sends a plain ZIP over HTTPS;
+the server (TASK 3.3) encrypts it at rest with a KMS-managed key.
 
-**The sequence (in `js/downloads.js` / new `js/submit.js`)**
+**Implemented sequence**
 
 ```javascript
 export async function submitPackToHR() {
-  // 1. Build the ZIP (reuse existing buildZip(true) — foldered structure)
-  const zipBlob = await buildZip(true);
-  const zipBuffer = await zipBlob.arrayBuffer();
+  if (navigator.onLine === false) return { status: 'offline' };
 
-  // 2. Fetch HR's public key from GET /keys/hr-public
-  const hrPublicKey = await fetchHRPublicKey();           // from crypto.js
+  const zipBlob = await buildZip(true); // foldered structure
+  const inviteId = state.session?.inviteId;
 
-  // 3. Encrypt
-  const encrypted = await encryptPack(zipBuffer, hrPublicKey);
-  const payload   = serialiseEncrypted(encrypted);         // single ArrayBuffer
+  let res;
+  try {
+    res = await fetch(`/packs/${inviteId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/zip',
+        'Authorization': `Bearer ${state.session?.token}`,
+      },
+      body: zipBlob,
+    });
+  } catch {
+    return { status: 'no-backend' }; // network/route absent — relay not deployed
+  }
 
-  // 4. Upload to relay: PUT /packs/{inviteId}
-  //    inviteId is stored in state.session.inviteId (set by TASK 3.2)
-  const res = await fetch(`/packs/${state.session.inviteId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/octet-stream',
-               'Authorization': `Bearer ${state.session.token}` },
-    body: payload,
-  });
+  if (res.status === 404 || res.status === 405 || res.status === 501) {
+    return { status: 'no-backend' }; // static host, relay not deployed yet
+  }
   if (!res.ok) throw new Error('Upload failed');
-
-  // 5. Clear draft
-  await clearDraft();                                      // from draft.js
-
-  // 6. Navigate to success screen
-  showView('viewSuccess');
+  return { status: 'uploaded' };
 }
 ```
 
-**Error handling**
-- Show a toast "Upload failed — please try again" on network error; do not clear the draft.
-- Disable the submit button and show a spinner during upload.
-
 **Offline fallback**
-If `navigator.onLine` is `false` at submit time, show a modal:
-"You appear to be offline. Your pack is ready and will be uploaded when you reconnect."
-Re-attempt automatically when `window` fires the `online` event.
+Returns `{ status: 'offline' }` immediately. `dashboard.js` shows an offline modal and
+re-attempts automatically on the `online` event.
+
+**No-backend fallback**
+Returns `{ status: 'no-backend' }` when the relay is absent (404/405/501 or network error).
+The candidate journey completes locally and the draft is preserved. The upload lights up
+automatically once Phase 3 deploys — no client changes required.
 
 **Acceptance criteria**
-- Completing all 15 forms and clicking submit causes a PUT request to `/packs/{id}` with a
-  binary body (not JSON, not form data).
+- Completing all 15 forms and clicking submit causes a PUT request to `/packs/{id}` with
+  `Content-Type: application/zip` and the ZIP blob as the body.
 - The request includes the `Authorization` header with the session token.
 - On a simulated 500 response, the success screen does not show and the draft is preserved.
+- On a simulated offline state, the offline modal appears and auto-retries on reconnect.
 
-**Dependencies:** TASK 1.2, TASK 1.5, TASK 1.6, TASK 2.2, TASK 3.2, TASK 3.4.
+**Dependencies:** TASK 1.2, TASK 1.5, TASK 1.6, TASK 3.2, TASK 3.4.
 
 ---
 
-### TASK 2.4 — HR Dashboard: pack download and client-side decryption
+### TASK 2.4 — HR Dashboard: authenticated pack download
 
 **What to build**
-The decryption flow in the HR Dashboard SPA (`hr-dashboard/js/decrypt.js`) that lets HR
-download and decrypt a candidate's pack entirely in the browser.
+The download flow in the HR Dashboard SPA (`hr-dashboard/js/download.js`) that lets HR
+download a candidate's pack via an authenticated GET to the relay. The server decrypts
+the pack before streaming it — HR never handles a key file.
 
 **Context**
-The HR Dashboard (its shell is built in TASK 4.1) displays a candidate row. When HR clicks
-"Download & Decrypt", this module handles the entire flow client-side.
+The HR Dashboard (TASK 4.1 shell) displays a candidate row. When HR clicks "Download Pack",
+this module fires a credentialed GET, receives the plaintext ZIP bytes, and saves the file.
+No private-key file picker, no client-side decryption.
 
-**New file: `hr-dashboard/js/decrypt.js`**
+**New file: `hr-dashboard/js/download.js`**
 
 ```javascript
-// Import the HR private key from the JSON file downloaded by hr-keygen.html
-// Returns a CryptoKey (RSA-OAEP)
-export async function importPrivateKey(jsonFile) { ... }
-
-// Decrypt an ArrayBuffer produced by serialiseEncrypted():
-//   1. Parse layout: wrappedKey | IV | ciphertext
-//   2. Unwrap AES key using HR private key (RSA-OAEP)
-//   3. Decrypt ciphertext with AES-GCM
-//   Returns plaintext ArrayBuffer (the ZIP)
-export async function decryptPack(encryptedBuffer, hrPrivateKey) { ... }
-
-// Full flow triggered by "Download & Decrypt" button:
-//   1. Prompt HR to select their private key JSON file (input type="file")
-//   2. Import the key
-//   3. GET /packs/{id} to fetch the ciphertext blob
-//   4. Decrypt
-//   5. Trigger browser download of the resulting ZIP as
+// Full flow triggered by "Download Pack" button:
+//   1. GET /packs/{id} with HR JWT (server decrypts and streams the ZIP)
+//   2. Receive response as ArrayBuffer
+//   3. Trigger browser download of the resulting ZIP as
 //      Brighter_Living_{candidateName}_Onboarding_Pack.zip
-export async function downloadAndDecrypt(inviteId, candidateName) { ... }
+export async function downloadPack(inviteId, candidateName) {
+  const res = await fetch(`/packs/${inviteId}`, {
+    headers: { 'Authorization': `Bearer ${sessionStorage.hrToken}` },
+  });
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Brighter_Living_${candidateName}_Onboarding_Pack.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 ```
 
 **Acceptance criteria**
-- Given the private key JSON from TASK 2.1 and the ciphertext uploaded in TASK 2.3,
-  `decryptPack` returns the original ZIP bytes.
-- The downloaded ZIP opens correctly in a standard archive utility and contains the
-  five category subfolders plus the manifest README.
-- If the wrong private key file is selected, an error toast is shown and no download occurs.
+- Clicking "Download Pack" with a valid HR JWT fetches `/packs/{id}` and saves a ZIP.
+- The downloaded ZIP opens correctly and contains the five category subfolders plus the
+  manifest README.
+- If the JWT is missing or expired, an error toast is shown and no download occurs.
+- The GET request is logged in the backend audit log (TASK 3.3).
 
-**Dependencies:** TASK 2.1, TASK 2.2, TASK 2.3, TASK 3.3.
+**Dependencies:** TASK 2.3, TASK 3.3, TASK 4.1.
 
-> **Note on ordering:** This task depends on TASK 3.3 (which provides the GET `/packs/:id`
-> endpoint) rather than TASK 4.1 (the HR Dashboard shell). The decryption module can be built
-> and tested in isolation before the full dashboard UI exists. It is wired into the dashboard
-> UI in TASK 4.2.
+> **Note on ordering:** This module can be built and tested in isolation once TASK 3.3 provides
+> the GET `/packs/:id` endpoint. It is wired into the dashboard UI in TASK 4.2.
 
 ---
 
@@ -676,53 +610,62 @@ Logic:
 
 ---
 
-### TASK 3.3 — HR public key endpoint + relay upload/download endpoints
+### TASK 3.3 — Relay upload/download endpoints with KMS encryption at rest
 
 **What to build**
-Three more endpoints extending the same service from TASK 3.2.
+Two endpoints extending the same service from TASK 3.2. The server handles all encryption;
+no `/keys/hr-public` endpoint is needed (client sends a plain ZIP).
 
-**GET `/keys/hr-public`** — returns the HR public key so the candidate portal can encrypt the pack.
-
-- Read the public key from `process.env.HR_PUBLIC_KEY` (a base64 SPKI string set by HR from TASK 2.1).
-- Return: `{ "publicKey": "<base64-spki>" }`.
-- No authentication required (the public key is public by definition).
-
-**PUT `/packs/:inviteId`** — receives the encrypted pack from the candidate.
+**PUT `/packs/:inviteId`** — receives the candidate's ZIP and encrypts it at rest.
 
 - Require `Authorization: Bearer <jwt>` header; verify JWT; confirm `sub === inviteId`.
-- Enforce `Content-Type: application/octet-stream`.
-- Enforce max body size of 50 MB.
-- Write the body bytes to object storage (S3 / Azure Blob / R2) at key `packs/{inviteId}`.
-  Set object metadata: `TTL = 14 days` (use the storage provider's object expiry feature as
-  a backstop — application-level deletion happens in TASK 4.3).
+- Enforce `Content-Type: application/zip`.
+- Enforce max body size of 50 MB (reject with 413 otherwise).
+- KMS encrypt the body:
+  1. Call KMS `GenerateDataKey` (AES-256).
+  2. AES-GCM encrypt the ZIP with the plaintext data key (random 96-bit IV).
+  3. Store `{ ciphertext, wrappedDataKey, iv }` in object storage (S3 / Azure Blob / R2)
+     at key `packs/{inviteId}`. Set object TTL = 14 days via storage-provider expiry
+     (application-level deletion happens via TASK 3.4 POST `/packs/:id/receipt`).
 - Update `invites.status = 'submitted'` and `updated_at = NOW()`.
 - Write `pack_submitted` to `audit_log`.
+- Trigger pack-ready email (TASK 5.2) asynchronously — stub as a no-op until TASK 5.2 lands.
 - Return 204 No Content.
 
-**GET `/packs/:inviteId`** — serves the encrypted pack to HR.
+**GET `/packs/:inviteId`** — decrypts and streams the ZIP to HR.
 
-- Require HR authentication (JWT with role `hr` — issued by TASK 4.2).
-- Fetch the object from storage. If not found (already purged): return 404.
-- Stream the bytes with `Content-Type: application/octet-stream`.
+- Require HR authentication (JWT with `role: 'hr'` — issued by TASK 4.1).
+- Fetch the encrypted object from storage. If not found (already purged): return 404.
+- KMS decrypt:
+  1. Call KMS `Decrypt` on the `wrappedDataKey`.
+  2. AES-GCM decrypt the ciphertext with the recovered data key and stored IV.
+- Stream the plaintext ZIP with `Content-Type: application/zip`.
 - Write `pack_downloaded` to `audit_log`.
 
 **Environment variables required**
 ```
 DATABASE_URL=postgres://...
 JWT_SECRET=...
-HR_PUBLIC_KEY=<base64-spki from TASK 2.1>
+KMS_KEY_ID=...           # ARN or key alias for the KMS CMK
 STORAGE_BUCKET=...
 STORAGE_REGION=...
-AWS_ACCESS_KEY_ID=...   (or equivalent for chosen provider)
+AWS_ACCESS_KEY_ID=...    # or equivalent for chosen provider
 AWS_SECRET_ACCESS_KEY=...
 ```
 
+**IAM / KMS policy**
+- The service role needs `kms:GenerateDataKey` + `kms:Decrypt` on the CMK only.
+- No HR user or service ever holds the CMK directly — KMS manages it.
+
 **Acceptance criteria**
-- PUT `/packs/{id}` with a valid JWT returns 204 and the object appears in the bucket.
+- PUT `/packs/{id}` with a valid candidate JWT and a ZIP body returns 204; the object in
+  the bucket contains ciphertext (not the raw ZIP bytes).
+- GET `/packs/{id}` with a valid HR JWT returns the original ZIP bytes (round-trip check).
 - GET `/packs/{id}` without an HR JWT returns 401.
 - GET `/packs/{id}` after the object is deleted returns 404.
+- PUT `/packs/{id}` with `Content-Type: application/json` returns 415.
 
-**Dependencies:** TASK 3.1, TASK 3.2, TASK 2.1.
+**Dependencies:** TASK 3.1, TASK 3.2.
 
 ---
 
@@ -968,12 +911,13 @@ The main candidate grid in the HR Dashboard, rendered from the GET `/invites` AP
 |---|---|
 | `invited` | "Resend link" |
 | `in_progress` | "Resend link" |
-| `submitted` | "Download & Decrypt" (primary), "Resend link" (secondary) |
+| `submitted` | "Download Pack" (primary), "Resend link" (secondary) |
 | `received` | "View record" only (pack already purged) |
 
 - "Resend link" → POST `/invites/{id}/remind` → toast "Reminder sent to {email}".
-- "Download & Decrypt" → triggers TASK 2.4 `downloadAndDecrypt(inviteId, candidateName)`.
-- After successful decrypt, show "Confirm Receipt" button in the row.
+- "Download Pack" → triggers TASK 2.4 `downloadPack(inviteId, candidateName)`. The server
+  decrypts and streams the ZIP; no private-key file picker is shown to HR.
+- After the download completes, show "Confirm Receipt" button in the row.
 - "Confirm Receipt" → POST `/packs/{id}/receipt` → row status updates to `received` → toast
   "Pack received and purged from relay".
 
@@ -1030,12 +974,12 @@ Progress: 15 / 15 forms complete  [============================]
 ```
 
 **Data source**
-The per-form signed dates come from `invite.formProgress`. The pack must have been decrypted
-in this HR browser session (TASK 2.4) for individual [Download] buttons to work — they
-enumerate the manifest and save the individual file from the in-memory decrypted ZIP.
+The per-form signed dates come from `invite.formProgress`. Individual [Download] buttons
+require the pack to have been downloaded in this HR browser session (TASK 2.4) — they
+enumerate the manifest and save the individual file from the in-memory ZIP.
 
-If the pack has not been decrypted yet, [Download] buttons are disabled with a tooltip
-"Decrypt the pack first".
+If the pack has not been downloaded yet in this session, individual [Download] buttons are
+disabled with a tooltip "Download the pack first".
 
 **Acceptance criteria**
 - All 15 forms appear in their correct category groups.
@@ -1043,7 +987,7 @@ If the pack has not been decrypted yet, [Download] buttons are disabled with a t
 - Individual [Download] buttons save the correct HTML file from the decrypted ZIP.
 - [Download full pack] saves the entire ZIP.
 - This view is accessible for `received` status candidates too (pack purged from relay, but
-  if HR already decrypted it in this session, the in-memory ZIP is still available).
+  if HR already downloaded it in this session, the in-memory ZIP is still available).
 
 **Dependencies:** TASK 4.2, TASK 2.4.
 
@@ -1307,16 +1251,16 @@ Content-Type: application/octet-stream   (reject anything else with 415)
 
 | Task | Spec section |
 |---|---|
-| 1.1 Modularise portal | §3.3 stack, §5 candidate portal |
-| 1.2 collectFormData | §4.3 form-answer capture |
-| 1.3 Validation | §5.5 validation |
-| 1.4 Encrypted draft | §4.1 data lifecycle, §7.1 local draft |
-| 1.5 generateFormHTML with real data | §4.2 downloadable folder, §4.3 |
-| 1.6 Progress reporting to API | §5 candidate portal, §3.2 data flow |
-| 2.1 HR key pair utility | §7.1 encryption model |
-| 2.2 Client-side encryption module | §3.2 data flow (encrypt step), §7.1 |
-| 2.3 Pack build + upload | §3.2 data flow (package + hand-off steps) |
-| 2.4 HR dashboard decryption | §3.2 data flow (retrieve step), §6.4 |
+| 1.1 Modularise portal ✅ | §3.3 stack, §5 candidate portal |
+| 1.2 collectFormData ✅ | §4.3 form-answer capture |
+| 1.3 Validation ✅ | §5.5 validation |
+| 1.4 Encrypted draft ✅ | §4.1 data lifecycle, §7.1 local draft |
+| 1.5 generateFormHTML with real data ✅ | §4.2 downloadable folder, §4.3 |
+| 1.6 Progress reporting to API ✅ | §5 candidate portal, §3.2 data flow |
+| ~~2.1 HR key pair utility~~ | *removed — superseded by server-side KMS* |
+| ~~2.2 Client-side encryption module~~ | *removed — superseded by server-side KMS* |
+| 2.3 Pack build + relay upload ✅ | §3.2 data flow (package + hand-off steps) |
+| 2.4 HR authenticated pack download | §3.2 data flow (retrieve step), §6.4 |
 | 3.1 DB schema | §3.3 metadata store, §4.1 data lifecycle |
 | 3.2 Magic-link endpoints | §5.1 authentication, §8 service interfaces |
 | 3.3 Key + relay endpoints | §3.3 stack, §7.1, §8 |
