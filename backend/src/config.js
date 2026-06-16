@@ -62,6 +62,13 @@ export const config = {
   localStorageDir: process.env.LOCAL_STORAGE_DIR || './data/packs',
   localKmsMasterKey: process.env.LOCAL_KMS_MASTER_KEY || '',
 
+  // CORS allowlist (D1 — pulled forward from TASK 6.3). The HR dashboard and
+  // candidate portal are separate origins; only these may call the API.
+  // Comma-separated; defaults cover local dev (static servers on common ports).
+  allowedOrigins: (process.env.ALLOWED_ORIGINS ||
+    'http://localhost:3000,http://localhost:5173,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:8080')
+    .split(',').map((s) => s.trim()).filter(Boolean),
+
   port: Number(process.env.PORT || 3000),
   portalBaseUrl: process.env.PORTAL_BASE_URL || 'https://onboarding.brighterliving.co.uk',
   hrNotifyEmail: process.env.HR_NOTIFY_EMAIL || '',

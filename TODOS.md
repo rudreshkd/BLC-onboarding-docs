@@ -57,3 +57,19 @@
 **Context:** TASK 4.1 deliberately specs the single hardcoded account "for now". Phase 3 implements `POST /hr/auth/login` against env vars (`backend/src/routes/hr.js`) and mints `{sub: HR_USER_ID, role:'hr'}`. To make the audit trail trustworthy, add an `hr_users` table (email, bcrypt hash, id), authenticate against it, and put the real user id in the JWT `sub`. Start from `backend/src/routes/hr.js`.
 
 **Depends on:** Phase 3 completion + Phase 4 dashboard (TASK 4.1).
+
+---
+
+## TODO-5: Playwright E2E for the HR dashboard
+
+**What:** A Playwright suite covering the real browser click-through: login → see candidate matrix → download a pack → confirm receipt → invite a candidate, against a running backend + Postgres + dashboard.
+
+**Why:** Phase 4 chose jsdom + node:test for the dashboard's logic modules (cheap, no browser) — that catches render/wiring/escaping regressions but NOT real-DOM, event-binding, or navigation bugs on HR's only operational view of candidate data.
+
+**Pros:** Tests what HR actually does end-to-end in a real browser; catches integration bugs the unit layer can't.
+
+**Cons:** Pulls in a browser toolchain + CI orchestration (backend + DB + dashboard all running); slower than unit tests.
+
+**Context:** Deferred in Phase 4 (`hr-dashboard/`, decision D2). The logic modules already have ~26 jsdom tests; this adds the missing real-browser layer. Pick it up once the dashboard UI stabilizes so selectors don't churn. Run the dashboard via a static server and point Playwright at it with the backend on localhost.
+
+**Depends on:** Phase 4 completion.

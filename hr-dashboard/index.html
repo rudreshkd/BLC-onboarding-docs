@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brighter Living — HR Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/hr.css" />
+  <!-- JSZip for reading downloaded packs (same version as the candidate portal) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to candidates</a>
+  <div class="stripe"></div>
+
+  <!-- ============ LOGIN VIEW ============ -->
+  <section id="view-login" class="login-wrap">
+    <div class="login-card">
+      <h1 class="brand">Brighter Living</h1>
+      <p class="muted">HR Dashboard — sign in</p>
+      <form id="login-form" novalidate>
+        <label class="field">
+          <span>Email</span>
+          <input id="login-email" type="email" autocomplete="username" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="login-password" type="password" autocomplete="current-password" required />
+        </label>
+        <p id="login-error" class="error-msg" role="alert" hidden></p>
+        <button id="btn-login" type="submit" class="btn btn-primary">Sign in</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD VIEW ============ -->
+  <section id="view-dashboard" hidden>
+    <header class="topbar">
+      <span class="topbar-brand">Brighter Living · HR</span>
+      <div class="topbar-actions">
+        <button id="btn-invite" class="btn btn-ghost">+ Invite candidate</button>
+        <button id="btn-signout" class="btn btn-ghost">Sign out</button>
+      </div>
+    </header>
+
+    <main id="main-content" class="wrap">
+      <!-- Metrics band (populated by dashboard.js) -->
+      <div id="metrics" class="metrics" aria-live="polite"></div>
+
+      <!-- Candidate tracking matrix -->
+      <div class="matrix-scroll">
+        <table class="matrix" aria-label="Candidate onboarding tracking">
+          <thead>
+            <tr>
+              <th scope="col">Candidate</th><th scope="col">Role</th><th scope="col">Submitted</th>
+              <th scope="col">Progress</th><th scope="col">Status</th><th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="matrix-body"><!-- rows injected by dashboard.js --></tbody>
+        </table>
+      </div>
+      <div id="matrix-empty" class="empty-state" hidden>
+        <p>No candidates yet. Invite your first candidate to start onboarding.</p>
+        <button class="btn btn-primary" data-nav="invite">+ Invite candidate</button>
+      </div>
+    </main>
+  </section>
+
+  <!-- ============ RECORD INSPECTOR (slide-in) ============ -->
+  <aside id="inspector" class="inspector" hidden aria-label="Candidate record"></aside>
+  <div id="inspector-scrim" class="scrim" hidden></div>
+
+  <!-- ============ INVITE MODAL ============ -->
+  <div id="invite-modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Invite a candidate"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
