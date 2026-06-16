@@ -35,6 +35,16 @@ test('rowHTML escapes hostile email/role (no HTML injection)', () => {
   assert.ok(html.includes('&lt;') || html.includes('&amp;'), 'values escaped');
 });
 
+test('rowHTML carries data-label on every cell (mobile card reflow contract)', () => {
+  const html = rowHTML({
+    id: '1', email: 'a@b.com', role: 'SW', status: 'invited',
+    formProgress: {}, formsComplete: 0, formsTotal: 15, submittedAt: null,
+  });
+  for (const label of ['Candidate', 'Role', 'Submitted', 'Progress', 'Status', 'Actions']) {
+    assert.ok(html.includes(`data-label="${label}"`), `missing data-label ${label}`);
+  }
+});
+
 test('render populates metrics + matrix; empty list shows the empty note', () => {
   render([{ id: '1', email: 'a@b.com', role: 'SW', status: 'invited', formProgress: {}, formsComplete: 0, formsTotal: 15, submittedAt: null }]);
   assert.ok(document.getElementById('matrix-body').innerHTML.includes('a'));

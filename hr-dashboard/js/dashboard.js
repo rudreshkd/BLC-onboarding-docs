@@ -64,12 +64,12 @@ function actionButtonsHTML(invite) {
 export function rowHTML(invite) {
   const pct = invite.formsTotal ? Math.round((invite.formsComplete / invite.formsTotal) * 100) : 0;
   return `<tr data-id="${escH(invite.id)}">
-    <td>${escH(nameFromEmail(invite.email))}</td>
-    <td>${escH(invite.role)}</td>
-    <td>${formatDate(invite.submittedAt)}</td>
-    <td>${invite.formsComplete}/${invite.formsTotal}<div class="bar"><i style="width:${pct}%"></i></div></td>
-    <td><span class="badge badge-${escH(invite.status)}">${escH(statusLabel(invite.status))}</span></td>
-    <td class="row-actions">${actionButtonsHTML(invite)}</td>
+    <td data-label="Candidate">${escH(nameFromEmail(invite.email))}</td>
+    <td data-label="Role">${escH(invite.role)}</td>
+    <td data-label="Submitted">${formatDate(invite.submittedAt)}</td>
+    <td data-label="Progress">${invite.formsComplete}/${invite.formsTotal}<div class="bar"><i style="width:${pct}%"></i></div></td>
+    <td data-label="Status"><span class="badge badge-${escH(invite.status)}">${escH(statusLabel(invite.status))}</span></td>
+    <td data-label="Actions" class="row-actions">${actionButtonsHTML(invite)}</td>
   </tr>`;
 }
 
@@ -97,6 +97,16 @@ export function render(list) {
   renderMatrix(list);
 }
 
+// Shimmer placeholder rows shown on the very first load (before data arrives).
+// Background polls keep the existing rows, so this only fills the initial blank.
+function renderSkeleton(rows = 4) {
+  const empty = document.getElementById('matrix-empty');
+  if (empty) empty.hidden = true;
+  const cell = '<td><div class="skel">&nbsp;</div></td>';
+  document.getElementById('matrix-body').innerHTML =
+    Array.from({ length: rows }, () => `<tr class="skeleton-row">${cell.repeat(6)}</tr>`).join('');
+}
+
 async function onMatrixClick(e) {
   const btn = e.target.closest('button[data-act]');
   if (!btn) return;
@@ -111,10 +121,17 @@ async function onMatrixClick(e) {
       showToast(`Reminder sent to ${invite.email}`);
     } else if (act === 'download') {
       btn.disabled = true;
+      btn.textContent = 'Downloading…';
       await downloadPack(id, nameFromEmail(invite.email));
       showToast('Pack downloaded');
       render(invites); // reveals Confirm Receipt now that hasPack() is true
     } else if (act === 'receipt') {
+      // Irreversible: server-side purge. Guard before firing.
+      if (!window.confirm(
+        'Confirm receipt of this pack? This permanently deletes it from the relay. '
+        + 'Make sure you have downloaded it first — this cannot be undone.')) return;
+      btn.disabled = true;
+      btn.textContent = 'Confirming…';
       await request(`/packs/${id}/receipt`, { method: 'POST' });
       showToast('Pack received and purged from relay');
       await refresh(); // status → received
@@ -148,6 +165,7 @@ function wireOnce() {
 
 export function startDashboard() {
   wireOnce();
+  renderSkeleton(); // fill the initial blank while the first fetch runs
   refresh();
   pollTimer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
 }

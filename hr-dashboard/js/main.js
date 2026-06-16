@@ -48,6 +48,10 @@ document.getElementById('btn-signout').addEventListener('click', () => {
 });
 
 document.getElementById('btn-invite').addEventListener('click', () => openInviteModal());
+// Empty-state CTA (re-rendered, so delegate).
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-nav="invite"]')) openInviteModal();
+});
 
 // Boot: resume an existing session or show login.
 if (isLoggedIn()) showDashboard();

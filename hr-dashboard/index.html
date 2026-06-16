@@ -13,6 +13,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to candidates</a>
   <div class="stripe"></div>
 
   <!-- ============ LOGIN VIEW ============ -->
@@ -50,16 +51,21 @@
       <div id="metrics" class="metrics" aria-live="polite"></div>
 
       <!-- Candidate tracking matrix -->
-      <table class="matrix" aria-label="Candidate onboarding tracking">
-        <thead>
-          <tr>
-            <th>Candidate</th><th>Role</th><th>Submitted</th>
-            <th>Progress</th><th>Status</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="matrix-body"><!-- rows injected by dashboard.js --></tbody>
-      </table>
-      <p id="matrix-empty" class="muted" hidden>No candidates yet. Use “+ Invite candidate”.</p>
+      <div class="matrix-scroll">
+        <table class="matrix" aria-label="Candidate onboarding tracking">
+          <thead>
+            <tr>
+              <th scope="col">Candidate</th><th scope="col">Role</th><th scope="col">Submitted</th>
+              <th scope="col">Progress</th><th scope="col">Status</th><th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="matrix-body"><!-- rows injected by dashboard.js --></tbody>
+        </table>
+      </div>
+      <div id="matrix-empty" class="empty-state" hidden>
+        <p>No candidates yet. Invite your first candidate to start onboarding.</p>
+        <button class="btn btn-primary" data-nav="invite">+ Invite candidate</button>
+      </div>
     </main>
   </section>
 

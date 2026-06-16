@@ -34,6 +34,7 @@ export function recordHTML(invite) {
     <h2>${escH(nameFromEmail(invite.email))} — ${escH(invite.role)}</h2>
     <p class="muted">Status: ${escH(invite.status)} · Submitted: ${formatDate(invite.submittedAt)}</p>
     <p>Progress: ${invite.formsComplete} / ${invite.formsTotal} forms complete</p>
+    ${downloaded ? '' : '<p class="muted" style="font-size:13px">Download the pack to enable individual form downloads below.</p>'}
     ${groups}
     <div style="margin-top:18px">
       <button class="btn btn-primary" data-act="download-all" ${invite.status === 'received' && !downloaded ? 'disabled title="Pack purged from relay"' : ''}>Download full pack ↓</button>
