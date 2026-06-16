@@ -42,6 +42,11 @@ test('POST /invites 400s without email/role', async () => {
   assert.equal(res.statusCode, 400);
 });
 
+test('POST /invites 400s on a malformed email', async () => {
+  const res = await app.inject({ method: 'POST', url: '/invites', headers: HR(), payload: { email: 'not-an-email', role: 'Support Worker' } });
+  assert.equal(res.statusCode, 400);
+});
+
 test('PATCH progress increments formsComplete and rejects a wrong sub', async () => {
   const invite = await seedInvite({ status: 'in_progress' });
   const tok = candidateToken(invite.id);

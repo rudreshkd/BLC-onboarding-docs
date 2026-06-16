@@ -4,8 +4,10 @@ import { test, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildServer, ensureSchema, truncateAll, closeDb,
-  seedInvite, seedToken, query, hashToken, auditEvents,
+  seedInvite, seedToken, query, hashToken, auditEvents, hrToken,
 } from './helpers/app.js';
+
+const HR = () => ({ authorization: `Bearer ${hrToken()}` });
 
 let app;
 before(async () => { await ensureSchema(); app = buildServer(); await app.ready(); });
@@ -13,20 +15,26 @@ beforeEach(async () => { await truncateAll(); });
 after(async () => { await app.close(); await closeDb(); });
 
 // --- POST /auth/invite-link ---------------------------------------------------
+test('invite-link requires an HR JWT', async () => {
+  const invite = await seedInvite();
+  const res = await app.inject({ method: 'POST', url: '/auth/invite-link', payload: { inviteId: invite.id } });
+  assert.equal(res.statusCode, 401);
+});
+
 test('invite-link 404s for an unknown invite', async () => {
-  const res = await app.inject({ method: 'POST', url: '/auth/invite-link', payload: { inviteId: '00000000-0000-0000-0000-000000000000' } });
+  const res = await app.inject({ method: 'POST', url: '/auth/invite-link', headers: HR(), payload: { inviteId: '00000000-0000-0000-0000-000000000000' } });
   assert.equal(res.statusCode, 404);
 });
 
 test('invite-link 409s when status is not invited', async () => {
   const invite = await seedInvite({ status: 'in_progress' });
-  const res = await app.inject({ method: 'POST', url: '/auth/invite-link', payload: { inviteId: invite.id } });
+  const res = await app.inject({ method: 'POST', url: '/auth/invite-link', headers: HR(), payload: { inviteId: invite.id } });
   assert.equal(res.statusCode, 409);
 });
 
 test('invite-link issues a token + link for an invited candidate', async () => {
   const invite = await seedInvite();
-  const res = await app.inject({ method: 'POST', url: '/auth/invite-link', payload: { inviteId: invite.id } });
+  const res = await app.inject({ method: 'POST', url: '/auth/invite-link', headers: HR(), payload: { inviteId: invite.id } });
   assert.equal(res.statusCode, 200);
   const { link } = res.json();
   assert.match(link, /\/\?token=[a-f0-9]{64}$/);

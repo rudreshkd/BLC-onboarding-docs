@@ -10,13 +10,14 @@
 
 import { query } from '../db.js';
 import { signToken } from '../auth/jwt.js';
+import { requireAuth } from '../auth/guard.js';
 import { hashToken, issueMagicLinkToken } from '../auth/tokens.js';
 import { writeAudit } from '../audit.js';
 import { notifyMagicLink } from '../notifications/stub.js';
 
 export default async function authRoutes(fastify) {
-  // --- POST /auth/invite-link -------------------------------------------------
-  fastify.post('/auth/invite-link', async (req, reply) => {
+  // --- POST /auth/invite-link (HR only — internal link issuance) --------------
+  fastify.post('/auth/invite-link', { preHandler: requireAuth('hr') }, async (req, reply) => {
     const { inviteId } = req.body || {};
     if (!inviteId) return reply.code(400).send({ error: 'inviteId is required' });
 

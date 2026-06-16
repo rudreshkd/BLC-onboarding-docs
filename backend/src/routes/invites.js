@@ -16,6 +16,7 @@ import { notifyMagicLink } from '../notifications/stub.js';
 import { config } from '../config.js';
 
 const PROGRESS_STATES = new Set(['in_progress', 'completed']);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function countCompleted(formProgress) {
   return Object.values(formProgress || {}).filter((v) => v === 'completed').length;
@@ -27,6 +28,9 @@ export default async function inviteRoutes(fastify) {
     const { email, role, offerTerms } = req.body || {};
     if (!email || !role) {
       return reply.code(400).send({ error: 'email and role are required' });
+    }
+    if (!EMAIL_RE.test(email)) {
+      return reply.code(400).send({ error: 'email is not a valid address' });
     }
     const { rows } = await query(
       `INSERT INTO invites (email, role, offer_terms, status, form_progress)

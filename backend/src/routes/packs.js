@@ -41,6 +41,11 @@ export default async function packRoutes(fastify) {
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
         return reply.code(400).send({ error: 'Empty body' });
       }
+      // Verify the bytes are actually a ZIP (local file header 'PK\x03\x04' or
+      // empty-archive 'PK\x05\x06') — Content-Type alone is caller-asserted.
+      if (req.body.length < 4 || req.body[0] !== 0x50 || req.body[1] !== 0x4b) {
+        return reply.code(400).send({ error: 'Body is not a valid ZIP archive' });
+      }
 
       // Envelope encrypt: fresh data key per pack, AES-256-GCM the ZIP, store wrapped key.
       const kms = getKms();

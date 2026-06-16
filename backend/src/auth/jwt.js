@@ -14,8 +14,10 @@ export function signToken(payload, opts = {}) {
 }
 
 // Returns the decoded payload, or throws (caller maps to 401).
+// Pin the algorithm so a token can never be accepted under alg:none or an
+// asymmetric-confusion variant — only our HS256 symmetric signing is valid.
 export function verifyToken(token) {
-  return jwt.verify(token, config.jwtSecret);
+  return jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] });
 }
 
 // Pull a Bearer token out of an Authorization header. Returns null if absent.

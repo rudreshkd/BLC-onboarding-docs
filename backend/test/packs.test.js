@@ -17,6 +17,11 @@ after(async () => { await app.close(); await closeDb(); });
 
 const ZIP_CT = { 'content-type': 'application/zip' };
 
+// A valid-looking ZIP: local-file-header magic 'PK\x03\x04' + random payload.
+function fakeZip(payloadBytes = 2048) {
+  return Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), randomBytes(payloadBytes)]);
+}
+
 async function putPack(inviteId, buf, token) {
   return app.inject({
     method: 'PUT', url: `/packs/${inviteId}`,
@@ -27,7 +32,7 @@ async function putPack(inviteId, buf, token) {
 
 test('PUT then GET round-trips byte-identical, and stores ciphertext (not the raw zip)', async () => {
   const invite = await seedInvite({ status: 'in_progress' });
-  const zip = randomBytes(2048); // opaque "zip" bytes
+  const zip = fakeZip(2048); // ZIP-magic-prefixed opaque bytes
 
   const put = await putPack(invite.id, zip, candidateToken(invite.id));
   assert.equal(put.statusCode, 204);
@@ -66,6 +71,12 @@ test('PUT rejects a non-zip content-type (415)', async () => {
   assert.equal(res.statusCode, 415);
 });
 
+test('PUT rejects a body that is not a real ZIP (400)', async () => {
+  const invite = await seedInvite({ status: 'in_progress' });
+  const res = await putPack(invite.id, Buffer.from('not a zip at all'), candidateToken(invite.id));
+  assert.equal(res.statusCode, 400);
+});
+
 test('PUT rejects an over-limit body (413)', async () => {
   const invite = await seedInvite({ status: 'in_progress' });
   const tooBig = Buffer.alloc(config.maxPackBytes + 1, 1);
@@ -83,7 +94,7 @@ test('GET requires an HR JWT (candidate or none → 401)', async () => {
 
 test('receipt purges the object, flips status to received, and GET then 404s', async () => {
   const invite = await seedInvite({ status: 'in_progress' });
-  await putPack(invite.id, randomBytes(512), candidateToken(invite.id));
+  await putPack(invite.id, fakeZip(512), candidateToken(invite.id));
 
   const receipt = await app.inject({ method: 'POST', url: `/packs/${invite.id}/receipt`, headers: { authorization: `Bearer ${hrToken()}` } });
   assert.equal(receipt.statusCode, 204);
