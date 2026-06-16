@@ -1,0 +1,13 @@
+{
+  "name": "brighter-living-hr-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Brighter Living — HR Admin Dashboard SPA (Phase 4)",
+  "scripts": {
+    "test": "node --test --test-concurrency=1"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.3"
+  }
+}

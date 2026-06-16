@@ -1,0 +1,25 @@
+/* tokens.css — Brighter Living brand tokens.
+   SYNCED FROM portal/css/tokens.css — keep in step (D4: copied, no shared dir).
+   All custom properties live here only. */
+:root {
+  --green:    #6B35A3;  /* Primary CTA buttons, active borders, progress fill */
+  --green-dk: #1C1A2E;  /* Topbar, form headers, footer backgrounds */
+  --green-md: #3D1A6B;  /* Deep purple text accents */
+  --green-lt: #F0EBF9;  /* Section backgrounds, info boxes */
+  --gold:     #3DCFCF;  /* Teal — section borders, accent stripe */
+  --gold-lt:  #E0F7F7;  /* Declaration box backgrounds */
+  --gold-dk:  #4A2070;  /* Button hover states */
+  --amber:    #C97B0A;  /* In-progress badges */
+  --red:      #dc2626;  /* Errors, required markers */
+  --red-lt:   #fee2e2;  /* Error field backgrounds */
+  --bg:       #F6F3FC;  /* Page background */
+  --border:   #DCD5ED;  /* Field borders */
+  --text:     #111827;  /* Body text */
+  --muted:    #5C4E72;  /* Labels */
+
+  --stripe: linear-gradient(90deg, #3DCFCF 0%, #6B35A3 55%, #3DCFCF 100%);
+
+  --font-head: 'Poppins', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-sig:  'Brush Script MT', 'Segoe Script', cursive;
+}
