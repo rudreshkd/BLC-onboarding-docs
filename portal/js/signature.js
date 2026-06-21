@@ -1,6 +1,6 @@
 // signature.js — signature validation, submitForm, reportProgress (TASK 1.6)
 
-import { state } from './state.js';
+import { state, API_BASE } from './state.js';
 import { collectFormData } from './forms.js';
 import { validateForm } from './validation.js';
 import { goToDashboard } from './nav.js';
@@ -13,7 +13,7 @@ import { showToast } from './toast.js';
 export async function reportProgress(formId, status) {
   if (!state.session?.inviteId) return;
   try {
-    await fetch(`/invites/${state.session.inviteId}/progress`, {
+    await fetch(`${API_BASE}/invites/${state.session.inviteId}/progress`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -60,7 +60,14 @@ export function wireSignature(formId) {
   });
 
   saveBtn.addEventListener('click', () => {
+    state.submissions[formId] = {
+      ...state.submissions[formId],
+      status: 'in_progress',
+      data: collectFormData(formId),
+    };
     saveDraft(state);
+    reportProgress(formId, 'in_progress');
+    showToast('Progress saved');
     goToDashboard();
   });
 }

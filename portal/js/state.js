@@ -1,21 +1,27 @@
 // state.js — central state object, form registry, shared helpers
 
+// Backend origin for the magic-link/progress/pack endpoints. Production serves
+// the portal and backend from the same origin (behind a reverse proxy), so
+// relative paths work there; local dev runs them on separate ports (the HR
+// dashboard's api.js has the same fallback for the same reason).
+export const API_BASE = (typeof window !== 'undefined' && window.BL_API_BASE) || 'http://localhost:3000';
+
 export const FORMS = [
-  { id: 'application',     name: 'Application Form',                    time: '20 min', category: 'Personal Details' },
-  { id: 'staffDetails',    name: 'Staff Details & Emergency Contacts',  time: '5 min',  category: 'Personal Details' },
-  { id: 'staffProfile',    name: 'Staff Profile',                       time: '3 min',  category: 'Personal Details' },
-  { id: 'bank',            name: 'Bank Details',                        time: '3 min',  category: 'Personal Details' },
-  { id: 'hmrc',            name: 'HMRC Starter Checklist',              time: '5 min',  category: 'Pay & Tax' },
-  { id: 'health',          name: 'Health Questionnaire',                time: '10 min', category: 'Health' },
-  { id: 'hepb',            name: 'Hepatitis B Vaccination Record',      time: '2 min',  category: 'Health' },
-  { id: 'covid',           name: 'COVID-19 Vaccination Status',         time: '3 min',  category: 'Health' },
-  { id: 'gdpr',            name: 'GDPR Consent',                        time: '5 min',  category: 'Consents & Declarations' },
-  { id: 'confidentiality', name: 'Confidentiality Agreement',           time: '2 min',  category: 'Consents & Declarations' },
-  { id: 'criminal',        name: 'Criminal Record Self-Declaration',    time: '5 min',  category: 'Consents & Declarations' },
-  { id: 'wtd',             name: 'Working Time Opt-Out',                time: '2 min',  category: 'Consents & Declarations' },
-  { id: 'offer',           name: 'Offer Letter & Contract',             time: '3 min',  category: 'Contract & Checks' },
-  { id: 'supervision',     name: 'Supervision Contract',                time: '3 min',  category: 'Contract & Checks' },
-  { id: 'reg19',           name: 'Employment History (Regulation 19)',  time: '15 min', category: 'Contract & Checks' },
+  { id: 'application',     name: 'Application Form',                    category: 'Personal Details' },
+  { id: 'staffDetails',    name: 'Staff Details & Emergency Contacts',  category: 'Personal Details' },
+  { id: 'staffProfile',    name: 'Staff Profile',                       category: 'Personal Details' },
+  { id: 'bank',            name: 'Bank Details',                        category: 'Personal Details' },
+  { id: 'hmrc',            name: 'HMRC Starter Checklist',              category: 'Pay & Tax' },
+  { id: 'health',          name: 'Health Questionnaire',                category: 'Health' },
+  { id: 'hepb',            name: 'Hepatitis B Vaccination Record',      category: 'Health' },
+  { id: 'covid',           name: 'COVID-19 Vaccination Status',         category: 'Health' },
+  { id: 'gdpr',            name: 'GDPR Consent',                        category: 'Consents & Declarations' },
+  { id: 'confidentiality', name: 'Confidentiality Agreement',           category: 'Consents & Declarations' },
+  { id: 'criminal',        name: 'Criminal Record Self-Declaration',    category: 'Consents & Declarations' },
+  { id: 'wtd',             name: 'Working Time Opt-Out',                category: 'Consents & Declarations' },
+  { id: 'offer',           name: 'Offer Letter & Contract',             category: 'Contract & Checks' },
+  { id: 'supervision',     name: 'Supervision Contract',                category: 'Contract & Checks' },
+  { id: 'reg19',           name: 'Employment History (Regulation 19)',  category: 'Contract & Checks' },
 ];
 
 export const FILE_NAMES = {

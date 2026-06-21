@@ -5,7 +5,7 @@
 // overall submittedAt + progress. Individual [Download] buttons are enabled only
 // once the pack has been downloaded this session (served from the in-memory ZIP).
 
-import { escH, formatDate, nameFromEmail } from './util.js';
+import { escH, formatDate, displayName } from './util.js';
 import { showToast } from './toast.js';
 import { hasPack, fileFromPack, downloadPack } from './download.js';
 import { FORMS, CATEGORIES } from './forms.js';
@@ -31,13 +31,14 @@ export function recordHTML(invite) {
 
   return `
     <button class="btn btn-sm btn-secondary" data-act="close">← Back</button>
-    <h2>${escH(nameFromEmail(invite.email))} — ${escH(invite.role)}</h2>
+    <h2>${escH(displayName(invite))} — ${escH(invite.role)}</h2>
     <p class="muted">Status: ${escH(invite.status)} · Submitted: ${formatDate(invite.submittedAt)}</p>
     <p>Progress: ${invite.formsComplete} / ${invite.formsTotal} forms complete</p>
     ${downloaded ? '' : '<p class="muted" style="font-size:13px">Download the pack to enable individual form downloads below.</p>'}
     ${groups}
-    <div style="margin-top:18px">
+    <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-primary" data-act="download-all" ${invite.status === 'received' && !downloaded ? 'disabled title="Pack purged from relay"' : ''}>Download full pack ↓</button>
+      <button class="btn btn-secondary" data-file="All_Forms_Combined.html" ${downloaded ? '' : 'disabled title="Download the pack first"'}>Open all forms as one document</button>
     </div>`;
 }
 
@@ -45,6 +46,9 @@ function close() {
   document.getElementById('inspector').hidden = true;
   document.getElementById('inspector-scrim').hidden = true;
   current = null;
+  // Lets the dashboard table pick up anything that changed while open (e.g. a
+  // pack download here reveals Confirm Receipt back in the row).
+  window.dispatchEvent(new CustomEvent('inspector-closed'));
 }
 
 async function onClick(e) {
@@ -55,7 +59,7 @@ async function onClick(e) {
 
   try {
     if (btn.dataset.act === 'download-all') {
-      await downloadPack(current.id, nameFromEmail(current.email));
+      await downloadPack(current.id, displayName(current));
       showToast('Pack downloaded');
       openRecord(current); // re-render: individual downloads now enabled
     } else if (btn.dataset.file) {

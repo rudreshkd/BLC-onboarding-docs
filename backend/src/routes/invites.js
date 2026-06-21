@@ -1,9 +1,10 @@
 // routes/invites.js — invite CRUD for the HR dashboard + candidate progress (TASK 3.4).
 //
-//   POST  /invites               (HR)        create invite ─► 201 { inviteId }
-//   GET   /invites               (HR)        list with computed formsComplete
-//   PATCH /invites/:id/progress  (candidate) merge one form's status
-//   POST  /invites/:id/remind    (HR)        re-issue magic link
+//   POST   /invites               (HR)        create invite ─► 201 { inviteId }
+//   GET    /invites               (HR)        list with computed formsComplete
+//   DELETE /invites/:id           (HR)        permanently remove an invite
+//   PATCH  /invites/:id/progress  (candidate) merge one form's status
+//   POST   /invites/:id/remind    (HR)        re-issue magic link
 //
 // form_progress invariant: values are status strings from a fixed enum only —
 // never form-answer PII. PATCH validates formId + status before merging.
@@ -25,18 +26,18 @@ function countCompleted(formProgress) {
 export default async function inviteRoutes(fastify) {
   // --- POST /invites (HR) -----------------------------------------------------
   fastify.post('/invites', { preHandler: requireAuth('hr') }, async (req, reply) => {
-    const { email, role, offerTerms } = req.body || {};
-    if (!email || !role) {
-      return reply.code(400).send({ error: 'email and role are required' });
+    const { name, email, role, offerTerms } = req.body || {};
+    if (!name || !email || !role) {
+      return reply.code(400).send({ error: 'name, email and role are required' });
     }
     if (!EMAIL_RE.test(email)) {
       return reply.code(400).send({ error: 'email is not a valid address' });
     }
     const { rows } = await query(
-      `INSERT INTO invites (email, role, offer_terms, status, form_progress)
-       VALUES ($1, $2, $3, 'invited', '{}'::jsonb)
+      `INSERT INTO invites (name, email, role, offer_terms, status, form_progress)
+       VALUES ($1, $2, $3, $4, 'invited', '{}'::jsonb)
        RETURNING id`,
-      [email, role, JSON.stringify(offerTerms || {})],
+      [name, email, role, JSON.stringify(offerTerms || {})],
     );
     const inviteId = rows[0].id;
     await writeAudit(inviteId, 'invite_created', `hr:${req.user.sub}`);
@@ -47,12 +48,13 @@ export default async function inviteRoutes(fastify) {
   // --- GET /invites (HR) ------------------------------------------------------
   fastify.get('/invites', { preHandler: requireAuth('hr') }, async (_req, reply) => {
     const { rows } = await query(
-      `SELECT id, email, role, status, offer_terms, form_progress, created_at, updated_at
+      `SELECT id, name, email, role, status, offer_terms, form_progress, link_sent_at, created_at, updated_at
          FROM invites
        ORDER BY created_at DESC`,
     );
     const invites = rows.map((r) => ({
       id: r.id,
+      name: r.name,
       email: r.email,
       role: r.role,
       status: r.status,
@@ -61,9 +63,22 @@ export default async function inviteRoutes(fastify) {
       formsTotal: config.formsTotal,
       offerTerms: r.offer_terms,
       submittedAt: r.status === 'submitted' || r.status === 'received' ? r.updated_at : null,
+      linkSentAt: r.link_sent_at,
       createdAt: r.created_at,
     }));
     return reply.send(invites);
+  });
+
+  // --- DELETE /invites/:id (HR) ------------------------------------------------
+  fastify.delete('/invites/:id', { preHandler: requireAuth('hr') }, async (req, reply) => {
+    const { id } = req.params;
+    const { rows: existing } = await query('SELECT id FROM invites WHERE id = $1', [id]);
+    if (!existing[0]) return reply.code(404).send({ error: 'Invite not found' });
+    // Write the audit row before deleting — its invite_id FK requires the invite
+    // to still exist; ON DELETE SET NULL then de-links it once we delete below.
+    await writeAudit(id, 'invite_deleted', `hr:${req.user.sub}`);
+    await query('DELETE FROM invites WHERE id = $1', [id]);
+    return reply.code(204).send();
   });
 
   // --- PATCH /invites/:id/progress (candidate) --------------------------------
@@ -114,6 +129,7 @@ export default async function inviteRoutes(fastify) {
     }
 
     const { link } = await issueMagicLinkToken(id);
+    await query('UPDATE invites SET link_sent_at = NOW() WHERE id = $1', [id]);
     await writeAudit(id, 'link_sent', `hr:${req.user.sub}`);
     notifyMagicLink(id, link); // fire-and-forget stub
     return reply.code(204).send();

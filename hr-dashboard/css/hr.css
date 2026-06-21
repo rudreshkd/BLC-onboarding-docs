@@ -13,16 +13,19 @@ body {
   padding: 8px 14px; border-radius: 8px; border: 1px solid transparent;
   cursor: pointer; background: #fff;
 }
-.btn-primary { background: var(--green); color: #fff; }
-.btn-primary:hover { background: var(--gold-dk); }
+.btn-primary { background: var(--yellow); color: var(--green-dk); }
+.btn-primary:hover { background: var(--yellow-dk); }
 .btn-ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,.4); }
 .btn-secondary { background: var(--green-lt); color: var(--green-md); border-color: var(--border); }
 .btn-secondary:hover { background: #e6dcf7; }
+.btn-danger { background: #fff; color: var(--red); border-color: var(--red-lt); }
+.btn-danger:hover { background: var(--red-lt); }
 .btn-sm { padding: 5px 10px; font-size: 13px; }
 .btn[disabled] { opacity: .5; cursor: not-allowed; }
 
 /* Login */
 .login-wrap { min-height: 90vh; display: grid; place-items: center; padding: 24px; }
+.login-wrap[hidden] { display: none; }
 .login-card {
   background: #fff; border: 1px solid var(--border); border-radius: 14px;
   padding: 32px; width: 100%; max-width: 380px;
@@ -58,6 +61,8 @@ body {
 .matrix th { background: var(--green-lt); color: var(--green-md); font-family: var(--font-head); }
 .bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 4px; }
 .bar > i { display: block; height: 100%; background: var(--green); }
+/* Submitted/received progress reads as "done" rather than "in flight" — teal, matching the received badge. */
+.bar-submitted > i, .bar-received > i { background: var(--gold); }
 
 /* Status badges — never color-only: each carries a glyph + text label. */
 .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
@@ -89,6 +94,7 @@ body {
   position: fixed; inset: 0; display: grid; place-items: center;
   background: rgba(0,0,0,.35); z-index: 20;
 }
+.modal[hidden] { display: none; }
 .modal-card { background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 440px; }
 
 .toast {

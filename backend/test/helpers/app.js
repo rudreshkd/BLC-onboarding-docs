@@ -30,6 +30,7 @@ export async function closeDb() {
 // Insert an invite, return its row. Override any column via opts.
 export async function seedInvite(opts = {}) {
   const {
+    name = 'Candidate Test',
     email = 'candidate@example.com',
     role = 'Support Worker',
     offerTerms = { startDate: 'TBC', salary: '£12.71/hr', hours: '35h', manager: 'Josiah Millar' },
@@ -37,10 +38,10 @@ export async function seedInvite(opts = {}) {
     formProgress = {},
   } = opts;
   const { rows } = await query(
-    `INSERT INTO invites (email, role, offer_terms, status, form_progress)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO invites (name, email, role, offer_terms, status, form_progress)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [email, role, JSON.stringify(offerTerms), status, JSON.stringify(formProgress)],
+    [name, email, role, JSON.stringify(offerTerms), status, JSON.stringify(formProgress)],
   );
   return rows[0];
 }

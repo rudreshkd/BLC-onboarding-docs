@@ -9,7 +9,7 @@
 // then submitPackToHR returns { status: 'no-backend' } so the candidate journey
 // still completes locally; the real upload lights up when the backend deploys.
 
-import { state } from './state.js';
+import { state, API_BASE } from './state.js';
 import { buildZip } from './downloads.js';
 
 // Returns one of:
@@ -25,7 +25,7 @@ export async function submitPackToHR() {
 
   let res;
   try {
-    res = await fetch(`/packs/${inviteId}`, {
+    res = await fetch(`${API_BASE}/packs/${inviteId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/zip',

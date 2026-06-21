@@ -1,6 +1,6 @@
 // auth.js — magic link flow (simulated until Phase 3), draft restore on login
 
-import { state } from './state.js';
+import { state, API_BASE } from './state.js';
 import { showView, goToDashboard } from './nav.js';
 import { loadDraft } from './draft.js';
 import { showToast } from './toast.js';
@@ -59,7 +59,7 @@ export async function tryTokenLogin() {
 
   let res;
   try {
-    res = await fetch('/auth/verify', {
+    res = await fetch(`${API_BASE}/auth/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),

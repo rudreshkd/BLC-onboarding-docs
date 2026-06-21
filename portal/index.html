@@ -26,7 +26,6 @@
       Brighter Living <span class="subtitle" style="opacity:.6;font-weight:400">· Onboarding</span>
     </div>
     <div class="actions" id="topbar-actions" style="display:none">
-      <button type="button" class="btn-ghost" data-nav="dashboard">Dashboard</button>
       <button type="button" class="btn-ghost" id="btn-signout">Sign out</button>
     </div>
   </div>
@@ -81,7 +80,7 @@
           </div>
           <span class="progress-label" id="dash-progress-label">0 of 15 forms complete</span>
         </div>
-        <button type="button" class="btn btn-secondary" id="btn-edit-profile">Edit profile</button>
+        <button type="button" class="btn btn-secondary" id="btn-edit-profile">Add details</button>
       </div>
 
       <ul class="form-list" id="dash-form-list"></ul>
@@ -94,10 +93,15 @@
     </section>
 
     <!-- ============ PROFILE ============ -->
-    <section class="view" id="view-profile" aria-label="Your profile">
+    <section class="view" id="view-profile" aria-label="Add your details">
       <div class="form-header">
         <button type="button" class="btn-ghost" data-nav="dashboard">&larr; Dashboard</button>
-        <h1>Your profile — fill this in once</h1>
+        <svg class="logo-mark" viewBox="0 0 48 48" aria-hidden="true" style="width:28px;height:28px">
+          <circle cx="24" cy="12" r="7" fill="#fff"/>
+          <path d="M24 22 C14 22 8 30 8 42 L24 42 Z" fill="#fff" opacity="0.85"/>
+          <path d="M24 22 C34 22 40 30 40 42 L24 42 Z" fill="#3DCFCF"/>
+        </svg>
+        <h1>Add details — fill this in once</h1>
       </div>
       <div class="form-card">
         <div class="info-box">These details automatically pre-fill every form, so you never
@@ -140,7 +144,7 @@
           <div class="field"><label for="profile-email">Email address <span class="req-mark">*</span></label>
             <input type="email" id="profile-email" autocomplete="email"></div>
         </div>
-        <button type="button" class="btn" id="btn-save-profile">Save profile</button>
+        <button type="button" class="btn" id="btn-save-profile">Save details</button>
       </div>
     </section>
 
@@ -183,7 +187,8 @@
           haven't finished yet download as blank templates.</div>
         <div id="downloads-list"></div>
         <div class="sig-actions" style="margin-top:20px">
-          <button type="button" class="btn" id="btn-download-flat">Download all files (ZIP)</button>
+          <button type="button" class="btn" id="btn-download-combined">Download as one document</button>
+          <button type="button" class="btn btn-secondary" id="btn-download-flat">Download all files (ZIP)</button>
           <button type="button" class="btn btn-secondary" id="btn-download-folders">Download folder structure (ZIP)</button>
         </div>
       </div>

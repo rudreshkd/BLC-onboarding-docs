@@ -5,9 +5,9 @@
 //   so re-rendering after a download flips "Confirm Receipt" on with no state.
 
 import { request } from './api.js';
-import { escH, formatDate, nameFromEmail } from './util.js';
+import { escH, formatDate, displayName } from './util.js';
 import { showToast } from './toast.js';
-import { downloadPack, hasPack } from './download.js';
+import { hasPack } from './download.js';
 import { openRecord } from './inspector.js';
 
 const POLL_MS = 30000;
@@ -32,30 +32,37 @@ export function statusLabel(status) {
 }
 
 // Which action buttons a row shows, by status (pure — unit tested).
-// `downloaded` gates Confirm Receipt (revealed only after a pack download).
-export function actionsFor(status, downloaded = false) {
+// Download Pack lives only inside the View record inspector now, not here.
+// `downloaded` gates Confirm Receipt (revealed only after a pack download,
+// which now happens from inside the inspector).
+// `formsComplete`/`formsTotal` gate View record (as soon as any form has
+// progress) and drop Resend link once every form is already complete.
+// Delete is always offered — HR can remove a candidate at any stage.
+export function actionsFor(status, downloaded = false, formsComplete = 0, formsTotal = 15) {
+  const view = formsComplete > 0 ? ['view'] : [];
+  const resend = formsTotal > 0 && formsComplete >= formsTotal ? [] : ['resend'];
   switch (status) {
     case 'invited':
+      return ['resend', 'delete'];
     case 'in_progress':
-      return ['resend'];
+      return [...view, ...resend, 'delete'];
     case 'submitted':
-      return downloaded ? ['download', 'resend', 'receipt'] : ['download', 'resend'];
+      return [...view, ...resend, ...(downloaded ? ['receipt'] : []), 'delete'];
     case 'received':
-      return ['view'];
+      return ['view', 'delete'];
     default:
-      return [];
+      return ['delete'];
   }
 }
 
 const ACTION_LABEL = {
-  resend: 'Resend link', download: 'Download Pack',
-  receipt: 'Confirm Receipt', view: 'View record',
+  resend: 'Resend link', receipt: 'Confirm Receipt', view: 'View record', delete: 'Delete',
 };
 
 function actionButtonsHTML(invite) {
-  return actionsFor(invite.status, hasPack(invite.id))
+  return actionsFor(invite.status, hasPack(invite.id), invite.formsComplete, invite.formsTotal)
     .map((act) => {
-      const primary = act === 'download' ? 'btn-primary' : 'btn-secondary';
+      const primary = act === 'delete' ? 'btn-danger' : 'btn-secondary';
       return `<button class="btn btn-sm ${primary}" data-act="${act}">${ACTION_LABEL[act]}</button>`;
     })
     .join('');
@@ -64,10 +71,11 @@ function actionButtonsHTML(invite) {
 export function rowHTML(invite) {
   const pct = invite.formsTotal ? Math.round((invite.formsComplete / invite.formsTotal) * 100) : 0;
   return `<tr data-id="${escH(invite.id)}">
-    <td data-label="Candidate">${escH(nameFromEmail(invite.email))}</td>
+    <td data-label="Candidate">${escH(displayName(invite))}</td>
     <td data-label="Role">${escH(invite.role)}</td>
+    <td data-label="Link sent">${formatDate(invite.linkSentAt)}</td>
     <td data-label="Submitted">${formatDate(invite.submittedAt)}</td>
-    <td data-label="Progress">${invite.formsComplete}/${invite.formsTotal}<div class="bar"><i style="width:${pct}%"></i></div></td>
+    <td data-label="Progress">${invite.formsComplete}/${invite.formsTotal}<div class="bar bar-${escH(invite.status)}"><i style="width:${pct}%"></i></div></td>
     <td data-label="Status"><span class="badge badge-${escH(invite.status)}">${escH(statusLabel(invite.status))}</span></td>
     <td data-label="Actions" class="row-actions">${actionButtonsHTML(invite)}</td>
   </tr>`;
@@ -119,12 +127,7 @@ async function onMatrixClick(e) {
     if (act === 'resend') {
       await request(`/invites/${id}/remind`, { method: 'POST' });
       showToast(`Reminder sent to ${invite.email}`);
-    } else if (act === 'download') {
-      btn.disabled = true;
-      btn.textContent = 'Downloading…';
-      await downloadPack(id, nameFromEmail(invite.email));
-      showToast('Pack downloaded');
-      render(invites); // reveals Confirm Receipt now that hasPack() is true
+      await refresh(); // picks up the new linkSentAt
     } else if (act === 'receipt') {
       // Irreversible: server-side purge. Guard before firing.
       if (!window.confirm(
@@ -137,6 +140,15 @@ async function onMatrixClick(e) {
       await refresh(); // status → received
     } else if (act === 'view') {
       openRecord(invite);
+    } else if (act === 'delete') {
+      if (!window.confirm(
+        `Delete ${invite.name || invite.email}? This permanently removes their invite and `
+        + 'onboarding record. This cannot be undone.')) return;
+      btn.disabled = true;
+      btn.textContent = 'Deleting…';
+      await request(`/invites/${id}`, { method: 'DELETE' });
+      showToast('Candidate deleted');
+      await refresh();
     }
   } catch (err) {
     if (err.status !== 401) showToast(err.message || 'Action failed');
@@ -160,6 +172,10 @@ export async function refresh() {
 function wireOnce() {
   if (wired) return;
   document.getElementById('matrix-body').addEventListener('click', onMatrixClick);
+  // The pack download now happens inside the inspector; re-render the table on
+  // close so a freshly-revealed Confirm Receipt button shows without waiting
+  // for the next poll.
+  window.addEventListener('inspector-closed', () => render(invites));
   wired = true;
 }
 
