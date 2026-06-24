@@ -12,4 +12,4 @@
 }
 .badge-notstarted { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
 .badge-inprogress { background: #FCF1E0; color: var(--amber); border: 1px solid var(--amber); }
-.badge-completed  { background: var(--green-lt); color: var(--green); border: 1px solid var(--green); }
+.badge-completed  { background: var(--success-lt); color: var(--success); border: 1px solid var(--success); }

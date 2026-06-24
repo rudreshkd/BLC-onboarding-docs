@@ -11,6 +11,8 @@
   --yellow:    #F3D400;  /* Primary CTA buttons — brighterliving.co.uk's "Speak to us" yellow */
   --yellow-dk: #D6BB00;  /* Primary CTA hover */
   --amber:    #C97B0A;  /* In-progress badges */
+  --success:    #1A7F4B;  /* Completed badges — actual green, distinct from the purple "--green" brand token */
+  --success-lt: #E3F5EA;  /* Completed badge background */
   --red:      #dc2626;  /* Errors, required markers */
   --red-lt:   #fee2e2;  /* Error field backgrounds */
   --bg:       #F6F3FC;  /* Page background */
