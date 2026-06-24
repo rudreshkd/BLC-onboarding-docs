@@ -29,6 +29,7 @@ export default async function authRoutes(fastify) {
     }
 
     const { link } = await issueMagicLinkToken(inviteId);
+    await query('UPDATE invites SET link_sent_at = NOW() WHERE id = $1', [inviteId]);
     await writeAudit(inviteId, 'link_sent', 'system');
     notifyMagicLink(inviteId, link); // fire-and-forget stub
     return reply.send({ link });

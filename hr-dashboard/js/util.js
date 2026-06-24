@@ -31,3 +31,9 @@ export function nameFromEmail(email) {
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ') || email || '';
 }
+
+// HR-entered name first; falls back to a guess from the email (covers rows
+// seeded before the name field existed).
+export function displayName(invite) {
+  return invite.name || nameFromEmail(invite.email);
+}

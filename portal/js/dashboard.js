@@ -43,7 +43,7 @@ export function renderDashboard() {
       <button type="button" class="form-row" data-form="${f.id}">
         <span class="meta">
           <span class="name">${escH(f.name)}</span>
-          <span class="sub">Estimated time: ${f.time}${submitted}</span>
+          ${submitted ? `<span class="sub">${submitted.replace(/^ · /, '')}</span>` : ''}
         </span>
         <span class="right">${badgeHTML(status)}</span>
       </button>
@@ -173,7 +173,7 @@ export function saveDetails() {
   });
   state.profileComplete = true;
   saveDraft(state);
-  showToast('Profile saved — your details will pre-fill every form');
+  showToast('Details saved — they will pre-fill every form');
   renderDashboard();
   showView('view-dashboard');
 }

@@ -464,6 +464,7 @@ function wireHmrc(root) {
   root.addEventListener('change', e => {
     if (['hmrcFirstJob', 'hmrcOtherPayments', 'hmrcAnotherJob'].includes(e.target.name)) update();
   });
+  update(); // reflect any radios already checked (e.g. restored from a saved draft)
 }
 
 /* ---------- collectFormData (TASK 1.2) ---------- */
@@ -596,8 +597,10 @@ export function openForm(id) {
     sigArea.style.display = 'block';
     wireConditionals(body);
     wireRepeaters(body);
+    // Restore whatever was saved via "Save & close" on a previous visit.
+    if (sub?.data && Object.keys(sub.data).length) populateForm(body, sub.data);
     wireLiveValidation(body);
-    if (id === 'hmrc') wireHmrc(body);
+    if (id === 'hmrc') wireHmrc(body); // reflects any radios just restored above
     wireSignature(id);
     if (!sub) {
       state.submissions[id] = { status: 'in_progress', data: {}, signedName: null, signedAt: null };

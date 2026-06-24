@@ -14,12 +14,26 @@ test('computeMetrics counts total / submitted / received', () => {
   assert.deepEqual(m, { total: 4, pendingReview: 2, received: 1 });
 });
 
-test('actionsFor maps status → buttons (and gates Confirm Receipt on download)', () => {
-  assert.deepEqual(actionsFor('invited'), ['resend']);
-  assert.deepEqual(actionsFor('in_progress'), ['resend']);
-  assert.deepEqual(actionsFor('submitted', false), ['download', 'resend']);
-  assert.deepEqual(actionsFor('submitted', true), ['download', 'resend', 'receipt']);
-  assert.deepEqual(actionsFor('received'), ['view']);
+test('actionsFor never shows Download Pack on the table row — it lives inside View record', () => {
+  assert.deepEqual(actionsFor('invited'), ['resend', 'delete']);
+  assert.deepEqual(actionsFor('in_progress'), ['resend', 'delete']);
+  assert.deepEqual(actionsFor('submitted', false, 15, 15), ['view', 'delete']);
+  assert.deepEqual(actionsFor('submitted', true, 15, 15), ['view', 'receipt', 'delete']);
+  assert.deepEqual(actionsFor('received'), ['view', 'delete']);
+});
+
+test('actionsFor offers View record once any form has progress, even before fully received', () => {
+  assert.deepEqual(actionsFor('invited', false, 0), ['resend', 'delete']);
+  assert.deepEqual(actionsFor('invited', false, 3), ['resend', 'delete'], 'invited candidates have not started forms');
+  assert.deepEqual(actionsFor('in_progress', false, 0), ['resend', 'delete']);
+  assert.deepEqual(actionsFor('in_progress', false, 3), ['view', 'resend', 'delete']);
+  assert.deepEqual(actionsFor('submitted', false, 15, 15), ['view', 'delete']);
+});
+
+test('actionsFor drops Resend link once all forms are complete', () => {
+  assert.deepEqual(actionsFor('in_progress', false, 14, 15), ['view', 'resend', 'delete'], 'still one form short');
+  assert.deepEqual(actionsFor('in_progress', false, 15, 15), ['view', 'delete'], 'all forms complete — no need to resend');
+  assert.deepEqual(actionsFor('submitted', true, 15, 15), ['view', 'receipt', 'delete']);
 });
 
 test('statusLabel humanizes in_progress', () => {
@@ -40,9 +54,23 @@ test('rowHTML carries data-label on every cell (mobile card reflow contract)', (
     id: '1', email: 'a@b.com', role: 'SW', status: 'invited',
     formProgress: {}, formsComplete: 0, formsTotal: 15, submittedAt: null,
   });
-  for (const label of ['Candidate', 'Role', 'Submitted', 'Progress', 'Status', 'Actions']) {
+  for (const label of ['Candidate', 'Role', 'Link sent', 'Submitted', 'Progress', 'Status', 'Actions']) {
     assert.ok(html.includes(`data-label="${label}"`), `missing data-label ${label}`);
   }
+});
+
+test('rowHTML prefers invite.name over the email-derived guess', () => {
+  const named = rowHTML({
+    id: '1', name: 'Sarah Okonkwo', email: 'whatever@e.com', role: 'SW',
+    status: 'invited', formProgress: {}, formsComplete: 0, formsTotal: 15, submittedAt: null,
+  });
+  assert.ok(named.includes('Sarah Okonkwo'));
+
+  const unnamed = rowHTML({
+    id: '2', email: 'sarah.okonkwo@e.com', role: 'SW',
+    status: 'invited', formProgress: {}, formsComplete: 0, formsTotal: 15, submittedAt: null,
+  });
+  assert.ok(unnamed.includes('Sarah Okonkwo'), 'falls back to nameFromEmail when no name is set');
 });
 
 test('render populates metrics + matrix; empty list shows the empty note', () => {

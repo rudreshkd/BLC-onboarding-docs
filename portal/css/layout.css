@@ -67,11 +67,11 @@ h1, h2, h3, h4, label, .btn { font-family: var(--font-head); }
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
-  background: var(--green);
-  color: #fff;
+  background: var(--yellow);
+  color: var(--green-dk);
   transition: background .15s;
 }
-.btn:hover { background: var(--gold-dk); }
+.btn:hover { background: var(--yellow-dk); }
 .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
 

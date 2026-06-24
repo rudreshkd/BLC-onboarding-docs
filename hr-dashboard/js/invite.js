@@ -10,12 +10,13 @@ import { refresh } from './dashboard.js';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const FIELDS = [
+  { id: 'name',    label: 'Candidate name',  type: 'text',  value: '',                    required: true },
   { id: 'email',   label: 'Candidate email', type: 'email', value: '',                    required: true },
   { id: 'role',    label: 'Role / job title', type: 'text', value: 'Support Worker',       required: true },
   { id: 'startDate', label: 'Start date',     type: 'text', value: 'TBC' },
   { id: 'salary',  label: 'Hourly rate',      type: 'text', value: '£12.71/hr' },
   { id: 'hours',   label: 'Contracted hours', type: 'text', value: '35 hours per week' },
-  { id: 'manager', label: 'Line manager',     type: 'text', value: 'Josiah Millar' },
+  { id: 'manager', label: 'Line manager',     type: 'text', value: '' },
 ];
 
 function modalHTML() {
@@ -44,9 +45,15 @@ function close() {
 // Read field values; validate. Returns the POST body, or null (and shows error).
 export function collectInvite() {
   const val = (id) => document.getElementById(`inv-${id}`).value.trim();
+  const name = val('name');
   const email = val('email');
   const role = val('role');
   const errEl = document.getElementById('inv-error');
+  if (!name) {
+    errEl.textContent = 'Candidate name is required';
+    errEl.hidden = false;
+    return null;
+  }
   if (!EMAIL_RE.test(email)) {
     errEl.textContent = 'Enter a valid candidate email address';
     errEl.hidden = false;
@@ -58,7 +65,7 @@ export function collectInvite() {
     return null;
   }
   return {
-    email, role,
+    name, email, role,
     offerTerms: {
       startDate: val('startDate'), salary: val('salary'),
       hours: val('hours'), manager: val('manager'),

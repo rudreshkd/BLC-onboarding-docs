@@ -1,5 +1,5 @@
 // downloads.js — Downloads view, generateFormHTML with real data (TASK 1.5),
-// single + bulk ZIP downloads with README.txt
+// single + bulk ZIP downloads with a branded Start_Here.html cover sheet
 
 import {
   state, FORMS, FILE_NAMES, CATEGORIES, escH, fullName, fullAddr,
@@ -73,12 +73,48 @@ function displayValue(key, value) {
 const LOGO_SVG = `<svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
   <circle cx="24" cy="12" r="7" fill="#fff"/>
   <path d="M24 22 C14 22 8 30 8 42 L24 42 Z" fill="#3D1A6B"/>
-  <path d="M24 22 C34 22 40 30 40 42 L24 42 Z" fill="#3DCFCF"/>
+  <path d="M24 22 C34 22 40 30 40 42 L24 42 Z" fill="#71DBD4"/>
 </svg>`;
+
+/* ---------- shared CSS for every generated document ---------- */
+
+const DOC_STYLE = `
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Inter:wght@400;500&display=swap');
+body { margin:0; font-family:'Inter',sans-serif; color:#111827; background:#fff; }
+h1,h2,h3 { font-family:'Poppins',sans-serif; }
+.stripe { height:6px; background:linear-gradient(90deg,#71DBD4 0%,#563D82 55%,#71DBD4 100%); }
+header { background:#211733; color:#fff; display:flex; align-items:center; gap:12px; padding:16px 32px; }
+header .word { font-family:'Poppins',sans-serif; font-weight:600; font-size:18px; flex:1; }
+header .tag { background:#563D82; border-radius:999px; padding:4px 14px; font-size:12px; }
+header .ref { font-size:12px; color:#9D93B8; margin-left:12px; }
+.title-band { padding:24px 32px 8px; }
+.title-band h1 { margin:0; color:#3D1A6B; font-size:24px; }
+.status { margin:8px 32px 24px; padding:12px 18px; border-radius:10px; font-size:14px; }
+.status.done { background:#F0EBF9; border:1px solid #563D82; color:#3D1A6B; }
+.status.pending { background:#FCF1E0; border:1px solid #C97B0A; color:#C97B0A; }
+.details, .content { margin:0 32px 24px; }
+.details { display:grid; grid-template-columns:repeat(3,1fr); gap:8px 24px; background:#F6F3FC;
+  border:1px solid #DCD5ED; border-radius:10px; padding:18px; font-size:13.5px; }
+.details div b { display:block; color:#5C4E72; font-size:11.5px; font-weight:600; text-transform:uppercase; }
+table.answers { width:100%; border-collapse:collapse; font-size:13.5px; margin-bottom:18px; }
+table.answers th, table.answers td { border:1px solid #DCD5ED; padding:8px 12px; text-align:left; vertical-align:top; }
+table.answers th { background:#F0EBF9; color:#3D1A6B; font-family:'Poppins',sans-serif; font-weight:600; width:38%; }
+table.answers.sub th { width:auto; }
+.content h3 { color:#3D1A6B; font-size:15px; margin:20px 0 8px; }
+.blank-note { background:#E0F7F7; border:1px solid #71DBD4; border-radius:10px; padding:14px 18px; font-size:14px; }
+.sig-record { margin:0 32px 24px; border-top:2px solid #563D82; padding-top:14px; }
+.sig-name { font-family:'Brush Script MT','Segoe Script',cursive; font-size:30px; color:#3D1A6B; margin:0; }
+.sig-meta { font-size:12.5px; color:#5C4E72; margin:4px 0 0; }
+footer { background:#211733; color:#9D93B8; font-size:12px; padding:16px 32px; margin-top:32px; }
+@media print { footer { position:fixed; bottom:0; left:0; right:0; } }
+`;
 
 /* ---------- generateFormHTML (TASK 1.5) ---------- */
 
-export function generateFormHTML(id) {
+// The inner content for one form: title, status, profile details, answers,
+// signature. Shared between the standalone per-form document and the combined
+// single-document download (each form becomes one <section> in that doc).
+function formSectionHTML(id) {
   const form = FORMS.find(f => f.id === id);
   const sub = state.submissions[id];
   const completed = sub?.status === 'completed';
@@ -125,46 +161,7 @@ export function generateFormHTML(id) {
       </div>`
     : '';
 
-  return `<!DOCTYPE html>
-<html lang="en-GB">
-<head>
-<meta charset="UTF-8">
-<title>${escH(form.name)} — Brighter Living Care Ltd</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Inter:wght@400;500&display=swap');
-body { margin:0; font-family:'Inter',sans-serif; color:#111827; background:#fff; }
-h1,h2,h3 { font-family:'Poppins',sans-serif; }
-.stripe { height:6px; background:linear-gradient(90deg,#3DCFCF 0%,#6B35A3 55%,#3DCFCF 100%); }
-header { background:#1C1A2E; color:#fff; display:flex; align-items:center; gap:12px; padding:16px 32px; }
-header .word { font-family:'Poppins',sans-serif; font-weight:600; font-size:18px; flex:1; }
-header .tag { background:#6B35A3; border-radius:999px; padding:4px 14px; font-size:12px; }
-header .ref { font-size:12px; color:#9D93B8; margin-left:12px; }
-.title-band { padding:24px 32px 8px; }
-.title-band h1 { margin:0; color:#3D1A6B; font-size:24px; }
-.status { margin:8px 32px 24px; padding:12px 18px; border-radius:10px; font-size:14px; }
-.status.done { background:#F0EBF9; border:1px solid #6B35A3; color:#3D1A6B; }
-.status.pending { background:#FCF1E0; border:1px solid #C97B0A; color:#C97B0A; }
-.details, .content { margin:0 32px 24px; }
-.details { display:grid; grid-template-columns:repeat(3,1fr); gap:8px 24px; background:#F6F3FC;
-  border:1px solid #DCD5ED; border-radius:10px; padding:18px; font-size:13.5px; }
-.details div b { display:block; color:#5C4E72; font-size:11.5px; font-weight:600; text-transform:uppercase; }
-table.answers { width:100%; border-collapse:collapse; font-size:13.5px; margin-bottom:18px; }
-table.answers th, table.answers td { border:1px solid #DCD5ED; padding:8px 12px; text-align:left; vertical-align:top; }
-table.answers th { background:#F0EBF9; color:#3D1A6B; font-family:'Poppins',sans-serif; font-weight:600; width:38%; }
-table.answers.sub th { width:auto; }
-.content h3 { color:#3D1A6B; font-size:15px; margin:20px 0 8px; }
-.blank-note { background:#E0F7F7; border:1px solid #3DCFCF; border-radius:10px; padding:14px 18px; font-size:14px; }
-.sig-record { margin:0 32px 24px; border-top:2px solid #6B35A3; padding-top:14px; }
-.sig-name { font-family:'Brush Script MT','Segoe Script',cursive; font-size:30px; color:#3D1A6B; margin:0; }
-.sig-meta { font-size:12.5px; color:#5C4E72; margin:4px 0 0; }
-footer { background:#1C1A2E; color:#9D93B8; font-size:12px; padding:16px 32px; margin-top:32px; }
-@media print { footer { position:fixed; bottom:0; left:0; right:0; } }
-</style>
-</head>
-<body>
-<div class="stripe"></div>
-<header>${LOGO_SVG}<span class="word">Brighter Living</span><span class="tag">Onboarding</span><span class="ref">${docRef}</span></header>
-<div class="title-band"><h1>${escH(form.name)}</h1></div>
+  return `<div class="title-band"><h1>${escH(form.name)}</h1></div>
 ${statusBlock}
 <div class="details">
   <div><b>Name</b>${escH(fullName() || '—')}</div>
@@ -175,8 +172,65 @@ ${statusBlock}
   <div><b>Address</b>${escH(fullAddr() || '—')}</div>
 </div>
 <div class="content">${answers}</div>
-${signature}
+${signature}`;
+}
+
+export function generateFormHTML(id) {
+  const form = FORMS.find(f => f.id === id);
+  const docRef = `BLC-ONB-${id.toUpperCase()}`;
+  return `<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<title>${escH(form.name)} — Brighter Living Care Ltd</title>
+<style>${DOC_STYLE}</style>
+</head>
+<body>
+<div class="stripe"></div>
+<header>${LOGO_SVG}<span class="word">Brighter Living</span><span class="tag">Onboarding</span><span class="ref">${docRef}</span></header>
+${formSectionHTML(id)}
 <footer>Brighter Living Care Ltd &middot; Registered in England &amp; Wales &middot; ${docRef}</footer>
+</body>
+</html>`;
+}
+
+// One single HTML document containing every form, in order, with a jump-link
+// table of contents — opens directly in a browser, no ZIP/extraction needed.
+export function generateCombinedHTML() {
+  const toc = CATEGORIES.map(cat => {
+    const items = FORMS.filter(f => f.category === cat)
+      .map(f => `<li><a href="#form-${escH(f.id)}">${escH(f.name)}</a></li>`).join('');
+    return `<h3>${escH(cat)}</h3><ul>${items}</ul>`;
+  }).join('');
+
+  const sections = FORMS.map(f => `
+    <section id="form-${escH(f.id)}" class="form-section">
+      ${formSectionHTML(f.id)}
+    </section>`).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<title>Onboarding Pack (combined) — Brighter Living Care Ltd</title>
+<style>${DOC_STYLE}
+.toc { margin:0 32px 24px; }
+.toc h3 { color:#3D1A6B; font-size:14px; margin:16px 0 6px; }
+.toc ul { list-style:none; margin:0; padding:0; columns:2; }
+.toc a { color:#563D82; text-decoration:none; font-weight:600; font-size:13.5px; line-height:1.9; }
+.toc a:hover { text-decoration:underline; }
+.form-section { border-top:4px solid #71DBD4; padding-top:8px; }
+.form-section:first-of-type { border-top:none; }
+@media print { .form-section { page-break-before:always; } .form-section:first-of-type { page-break-before:avoid; } }
+</style>
+</head>
+<body>
+<div class="stripe"></div>
+<header>${LOGO_SVG}<span class="word">Brighter Living</span><span class="tag">Onboarding</span></header>
+<div class="title-band"><h1>Your Onboarding Pack — All Forms</h1></div>
+<div class="toc"><p>Jump to a form:</p>${toc}</div>
+${sections}
+<footer>Brighter Living Care Ltd &middot; Registered in England &amp; Wales</footer>
 </body>
 </html>`;
 }
@@ -199,26 +253,77 @@ export function downloadSingle(id) {
   triggerDownload(new Blob([html], { type: 'text/html' }), FILE_NAMES[id]);
 }
 
-function buildReadme() {
-  const lines = [
-    'Brighter Living Care Ltd — Onboarding Pack',
-    `Candidate: ${fullName() || 'Not yet provided'}`,
-    `Generated: ${new Date().toLocaleString('en-GB')}`,
-    '',
-    'Files and completion status:',
-    '',
-  ];
-  FORMS.forEach(f => {
-    const status = statusOf(f.id) === 'completed' ? 'COMPLETED' : 'NOT YET COMPLETED';
-    lines.push(`  ${FILE_NAMES[f.id]}  —  ${status}`);
-  });
-  return lines.join('\n') + '\n';
+// Branded cover sheet (replaces the old plain-text README.txt) — same template
+// chrome as generateFormHTML, lists every form's status, and links both to the
+// other files in the pack and back to the live portal.
+function generateCoverHTML(foldered) {
+  const portalUrl = `${location.origin}${location.pathname}`;
+  const rows = CATEGORIES.map(cat => {
+    const forms = FORMS.filter(f => f.category === cat);
+    const items = forms.map(f => {
+      const done = statusOf(f.id) === 'completed';
+      const href = foldered ? `${f.category}/${FILE_NAMES[f.id]}` : FILE_NAMES[f.id];
+      const mark = done
+        ? '<span class="tick">&#10003; Completed</span>'
+        : '<span class="pending">Not yet completed</span>';
+      return `<tr><td><a href="${escH(href)}">${escH(f.name)}</a></td><td>${mark}</td></tr>`;
+    }).join('');
+    return `<h3>${escH(cat)}</h3><table class="answers"><tbody>${items}</tbody></table>`;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<title>Onboarding Pack — Brighter Living Care Ltd</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Inter:wght@400;500&display=swap');
+body { margin:0; font-family:'Inter',sans-serif; color:#111827; background:#fff; }
+h1,h2,h3 { font-family:'Poppins',sans-serif; }
+.stripe { height:6px; background:linear-gradient(90deg,#71DBD4 0%,#563D82 55%,#71DBD4 100%); }
+header { background:#211733; color:#fff; display:flex; align-items:center; gap:12px; padding:16px 32px; }
+header .word { font-family:'Poppins',sans-serif; font-weight:600; font-size:18px; flex:1; }
+header .tag { background:#563D82; border-radius:999px; padding:4px 14px; font-size:12px; }
+.title-band { padding:24px 32px 8px; }
+.title-band h1 { margin:0; color:#3D1A6B; font-size:24px; }
+.content { margin:0 32px 24px; }
+.content h3 { color:#3D1A6B; font-size:15px; margin:20px 0 8px; }
+table.answers { width:100%; border-collapse:collapse; font-size:13.5px; margin-bottom:8px; }
+table.answers td { border:1px solid #DCD5ED; padding:8px 12px; text-align:left; }
+table.answers a { color:#563D82; font-weight:600; text-decoration:none; }
+table.answers a:hover { text-decoration:underline; }
+.tick { color:#0a6b54; font-weight:600; }
+.pending { color:#C97B0A; }
+.return-link { margin:0 32px 24px; }
+.return-link a {
+  display:inline-block; background:#F3D400; color:#211733; font-weight:600;
+  padding:12px 22px; border-radius:8px; text-decoration:none; font-family:'Poppins',sans-serif;
+}
+footer { background:#211733; color:#9D93B8; font-size:12px; padding:16px 32px; margin-top:32px; }
+</style>
+</head>
+<body>
+<div class="stripe"></div>
+<header>${LOGO_SVG}<span class="word">Brighter Living</span><span class="tag">Onboarding</span></header>
+<div class="title-band"><h1>Your Onboarding Pack</h1></div>
+<div class="content">
+  <p><strong>Candidate:</strong> ${escH(fullName() || 'Not yet provided')}<br>
+  <strong>Generated:</strong> ${escH(new Date().toLocaleString('en-GB'))}</p>
+  <p>Click any form below to open it, or open <a href="All_Forms_Combined.html">All_Forms_Combined.html</a>
+  to read every form in a single document. Forms you haven't finished yet are included as blank templates.</p>
+  ${rows}
+</div>
+<div class="return-link"><a href="${escH(portalUrl)}">&larr; Return to your onboarding portal</a></div>
+<footer>Brighter Living Care Ltd &middot; Registered in England &amp; Wales</footer>
+</body>
+</html>`;
 }
 
 // Builds the candidate pack ZIP. foldered=true organises into category subfolders.
 export async function buildZip(foldered) {
   const zip = new JSZip();
-  zip.file('README.txt', buildReadme());
+  zip.file('Start_Here.html', generateCoverHTML(foldered));
+  zip.file('All_Forms_Combined.html', generateCombinedHTML()); // root, regardless of foldered
   FORMS.forEach(f => {
     const html = generateFormHTML(f.id);
     const path = foldered ? `${f.category}/${FILE_NAMES[f.id]}` : FILE_NAMES[f.id];
@@ -248,6 +353,13 @@ export function downloadAllFlat(btn) {
 
 export function downloadFoldered(btn) {
   return bulkDownload(btn, true, 'Brighter_Living_Onboarding_Pack_Folders.zip');
+}
+
+// A single HTML file with every form — opens directly in a browser, no ZIP
+// extraction needed. Same content as All_Forms_Combined.html inside the ZIP.
+export function downloadCombined() {
+  const html = generateCombinedHTML();
+  triggerDownload(new Blob([html], { type: 'text/html' }), 'Brighter_Living_Onboarding_Pack_Combined.html');
 }
 
 /* ---------- Downloads view ---------- */
@@ -282,4 +394,5 @@ export function wireDownloads() {
     downloadAllFlat(e.currentTarget));
   document.getElementById('btn-download-folders').addEventListener('click', e =>
     downloadFoldered(e.currentTarget));
+  document.getElementById('btn-download-combined').addEventListener('click', downloadCombined);
 }

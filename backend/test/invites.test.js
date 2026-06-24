@@ -14,14 +14,14 @@ beforeEach(async () => { await truncateAll(); });
 after(async () => { await app.close(); await closeDb(); });
 
 test('POST /invites requires an HR JWT', async () => {
-  const res = await app.inject({ method: 'POST', url: '/invites', payload: { email: 'x@y.com', role: 'Support Worker' } });
+  const res = await app.inject({ method: 'POST', url: '/invites', payload: { name: 'X Y', email: 'x@y.com', role: 'Support Worker' } });
   assert.equal(res.statusCode, 401);
 });
 
 test('POST /invites creates an invite that appears in GET /invites', async () => {
   const create = await app.inject({
     method: 'POST', url: '/invites', headers: HR(),
-    payload: { email: 'sarah@example.com', role: 'Support Worker', offerTerms: { salary: '£12.71/hr' } },
+    payload: { name: 'Sarah Smith', email: 'sarah@example.com', role: 'Support Worker', offerTerms: { salary: '£12.71/hr' } },
   });
   assert.equal(create.statusCode, 201);
   const { inviteId } = create.json();
@@ -32,19 +32,37 @@ test('POST /invites creates an invite that appears in GET /invites', async () =>
   const invites = list.json();
   const found = invites.find((i) => i.id === inviteId);
   assert.ok(found);
+  assert.equal(found.name, 'Sarah Smith');
   assert.equal(found.status, 'invited');
   assert.equal(found.formsComplete, 0);
   assert.equal(found.formsTotal, 15);
 });
 
-test('POST /invites 400s without email/role', async () => {
+test('POST /invites 400s without name/email/role', async () => {
   const res = await app.inject({ method: 'POST', url: '/invites', headers: HR(), payload: { email: 'x@y.com' } });
   assert.equal(res.statusCode, 400);
 });
 
 test('POST /invites 400s on a malformed email', async () => {
-  const res = await app.inject({ method: 'POST', url: '/invites', headers: HR(), payload: { email: 'not-an-email', role: 'Support Worker' } });
+  const res = await app.inject({ method: 'POST', url: '/invites', headers: HR(), payload: { name: 'X Y', email: 'not-an-email', role: 'Support Worker' } });
   assert.equal(res.statusCode, 400);
+});
+
+test('DELETE /invites/:id removes the invite and de-links its audit trail', async () => {
+  const invite = await seedInvite();
+  const res = await app.inject({ method: 'DELETE', url: `/invites/${invite.id}`, headers: HR() });
+  assert.equal(res.statusCode, 204);
+
+  const list = await app.inject({ method: 'GET', url: '/invites', headers: HR() });
+  assert.ok(!list.json().some((i) => i.id === invite.id));
+
+  const { rows } = await query('SELECT invite_id FROM audit_log WHERE event = $1', ['invite_deleted']);
+  assert.equal(rows[0].invite_id, null);
+});
+
+test('DELETE /invites/:id 404s for an unknown id', async () => {
+  const res = await app.inject({ method: 'DELETE', url: '/invites/00000000-0000-0000-0000-000000000000', headers: HR() });
+  assert.equal(res.statusCode, 404);
 });
 
 test('PATCH progress increments formsComplete and rejects a wrong sub', async () => {
