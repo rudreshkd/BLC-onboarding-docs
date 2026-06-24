@@ -82,6 +82,16 @@ h1, h2, h3, h4, label, .btn { font-family: var(--font-head); }
 }
 .btn-secondary:hover { background: var(--green-lt); }
 
+/* The dashboard's entry-point CTA — first thing a candidate should press,
+   so hover/click swap to the brand purple to draw the eye toward it. */
+.btn-start {
+  background: var(--yellow);
+  color: var(--green-dk);
+  transition: background .15s, color .15s, transform .1s;
+}
+.btn-start:hover, .btn-start:focus-visible { background: var(--green); color: #fff; }
+.btn-start:active { background: var(--green-dk); color: #fff; transform: scale(.97); }
+
 .btn-ghost {
   background: transparent;
   color: #fff;
