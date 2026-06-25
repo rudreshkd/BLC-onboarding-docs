@@ -20,7 +20,8 @@ const ROLE_OPTIONS = [
 ];
 
 const FIELDS = [
-  { id: 'name',    label: 'Candidate name',  type: 'text',  value: '',                    required: true },
+  { id: 'firstName', label: 'First name',     type: 'text',  value: '',                    required: true },
+  { id: 'surname',   label: 'Surname',        type: 'text',  value: '',                    required: true },
   { id: 'email',   label: 'Candidate email', type: 'email', value: '',                    required: true },
   { id: 'role',    label: 'Role / job title', type: 'select', value: 'Support Worker', options: ROLE_OPTIONS, required: true },
   { id: 'startDate', label: 'Start date',     type: 'date', value: '' },
@@ -64,12 +65,14 @@ function close() {
 // Read field values; validate. Returns the POST body, or null (and shows error).
 export function collectInvite() {
   const val = (id) => document.getElementById(`inv-${id}`).value.trim();
-  const name = val('name');
+  const firstName = val('firstName');
+  const surname = val('surname');
+  const name = `${firstName} ${surname}`.trim();
   const email = val('email');
   const role = val('role');
   const errEl = document.getElementById('inv-error');
-  if (!name) {
-    errEl.textContent = 'Candidate name is required';
+  if (!firstName || !surname) {
+    errEl.textContent = 'First name and surname are required';
     errEl.hidden = false;
     return null;
   }
