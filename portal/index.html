@@ -32,8 +32,10 @@
 
   <main class="wrap">
 
-    <!-- ============ LOGIN ============ -->
-    <section class="view" id="view-login" aria-label="Log in">
+    <!-- ============ LOGIN (no-token landing) ============ -->
+    <!-- The only way in is a personal invite link (?token=). With no token we
+         can't identify the candidate, so we point them back to their link. -->
+    <section class="view" id="view-login" aria-label="Use your invite link">
       <div class="login-hero">
         <svg class="logo-mark" viewBox="0 0 48 48" aria-hidden="true">
           <circle cx="24" cy="12" r="7" fill="#6B35A3"/>
@@ -43,24 +45,10 @@
         <h1>Welcome to Brighter Living</h1>
         <p>Complete your onboarding forms online — no printing, no scanning.</p>
       </div>
-      <div class="card login-card">
-        <div class="field">
-          <label for="login-email">Your email address</label>
-          <input type="email" id="login-email" autocomplete="email" placeholder="you@example.com">
-        </div>
-        <button type="button" class="btn" id="btn-send-link" style="width:100%">Email me a magic link</button>
-      </div>
-    </section>
-
-    <!-- ============ CHECK EMAIL ============ -->
-    <section class="view" id="view-check-email" aria-label="Check your email">
       <div class="card login-card" style="text-align:center">
-        <h1 style="color:var(--green-md)">Check your email</h1>
-        <p style="color:var(--muted)">We've sent a secure sign-in link to your inbox.
-          It's valid for 7 days and can only be used once.</p>
-        <!-- Simulated until the Phase 3 backend sends real email -->
-        <button type="button" class="btn" id="btn-open-link" style="width:100%">Open magic link (simulated)</button>
-        <button type="button" class="btn-link" id="btn-resend-link">Resend link</button>
+        <h2 style="color:var(--green-md)">Open your invite link</h2>
+        <p style="color:var(--muted)">Use the personal onboarding link Brighter Living
+          sent you to continue. It takes you straight to your forms — no password needed.</p>
       </div>
     </section>
 

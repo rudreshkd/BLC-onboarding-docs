@@ -1,10 +1,9 @@
 // routes/invites.js — invite CRUD for the HR dashboard + candidate progress (TASK 3.4).
 //
-//   POST   /invites               (HR)        create invite ─► 201 { inviteId }
+//   POST   /invites               (HR)        create invite + issue magic link ─► 201 { inviteId, link }
 //   GET    /invites               (HR)        list with computed formsComplete
 //   DELETE /invites/:id           (HR)        permanently remove an invite
 //   PATCH  /invites/:id/progress  (candidate) merge one form's status
-//   POST   /invites/:id/remind    (HR)        re-issue magic link
 //
 // form_progress invariant: values are status strings from a fixed enum only —
 // never form-answer PII. PATCH validates formId + status before merging.
@@ -41,8 +40,14 @@ export default async function inviteRoutes(fastify) {
     );
     const inviteId = rows[0].id;
     await writeAudit(inviteId, 'invite_created', `hr:${req.user.sub}`);
-    notifyMagicLink(inviteId); // fire-and-forget stub (Phase 5)
-    return reply.code(201).send({ inviteId });
+
+    // Issue the magic link up front so HR can copy it straight into an email.
+    // The raw token is returned once here and never persisted (only its hash is).
+    const { link } = await issueMagicLinkToken(inviteId);
+    await query('UPDATE invites SET link_sent_at = NOW() WHERE id = $1', [inviteId]);
+    await writeAudit(inviteId, 'link_sent', `hr:${req.user.sub}`);
+    notifyMagicLink(inviteId, link); // fire-and-forget stub (Phase 5)
+    return reply.code(201).send({ inviteId, link });
   });
 
   // --- GET /invites (HR) ------------------------------------------------------
@@ -115,23 +120,6 @@ export default async function inviteRoutes(fastify) {
     }
 
     await writeAudit(id, 'form_progress_updated', 'candidate');
-    return reply.code(204).send();
-  });
-
-  // --- POST /invites/:id/remind (HR) ------------------------------------------
-  fastify.post('/invites/:id/remind', { preHandler: requireAuth('hr') }, async (req, reply) => {
-    const { id } = req.params;
-    const { rows } = await query('SELECT id, status FROM invites WHERE id = $1', [id]);
-    const invite = rows[0];
-    if (!invite) return reply.code(404).send({ error: 'Invite not found' });
-    if (invite.status !== 'invited' && invite.status !== 'in_progress') {
-      return reply.code(409).send({ error: `Cannot remind an invite with status '${invite.status}'` });
-    }
-
-    const { link } = await issueMagicLinkToken(id);
-    await query('UPDATE invites SET link_sent_at = NOW() WHERE id = $1', [id]);
-    await writeAudit(id, 'link_sent', `hr:${req.user.sub}`);
-    notifyMagicLink(id, link); // fire-and-forget stub
     return reply.code(204).send();
   });
 }

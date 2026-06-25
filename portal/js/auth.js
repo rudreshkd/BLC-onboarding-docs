@@ -1,27 +1,10 @@
-// auth.js — magic link flow (simulated until Phase 3), draft restore on login
+// auth.js — magic-link sign-in: a candidate's invite link (?token=) is the only
+// way in. No email entry, no password — the link drops them straight on the forms.
 
 import { state, API_BASE } from './state.js';
 import { showView, goToDashboard } from './nav.js';
 import { loadDraft } from './draft.js';
 import { showToast } from './toast.js';
-
-export function sendMagicLink() {
-  const emailInput = document.getElementById('login-email');
-  const email = emailInput.value.trim();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    emailInput.closest('.field')?.classList.add('field-error');
-    emailInput.addEventListener('input', () =>
-      emailInput.closest('.field')?.classList.remove('field-error'), { once: true });
-    showToast('Enter a valid email address');
-    return;
-  }
-  state.profile.email = email;
-  showView('view-check-email');
-}
-
-export function resendLink() {
-  showToast(`Magic link re-sent to ${state.profile.email}`);
-}
 
 // Strip any ?token= from the URL so it never lingers in browser history.
 function stripTokenFromUrl() {
@@ -40,16 +23,7 @@ async function restoreDraft() {
   }
 }
 
-// Simulated login path (no real backend / no token) — kept for the standalone
-// demo so the portal works without the Phase 3 service deployed.
-export async function completeLogin() {
-  state.loggedIn = true;
-  await restoreDraft();
-  stripTokenFromUrl();
-  goToDashboard();
-}
-
-// Real magic-link login (Phase 3). Called once on page load: if the URL carries
+// Real magic-link login. Called once on page load: if the URL carries
 // ?token=, verify it against the backend, establish state.session, and enter the
 // dashboard. Returns true if it handled a token (success OR failure), false if
 // no token was present so the caller can show the normal login view.
@@ -90,10 +64,4 @@ export async function tryTokenLogin() {
   stripTokenFromUrl();
   goToDashboard();
   return true;
-}
-
-export function wireAuth() {
-  document.getElementById('btn-send-link').addEventListener('click', sendMagicLink);
-  document.getElementById('btn-resend-link').addEventListener('click', resendLink);
-  document.getElementById('btn-open-link').addEventListener('click', completeLogin);
 }
