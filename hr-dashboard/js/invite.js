@@ -62,6 +62,48 @@ function close() {
   m.innerHTML = '';
 }
 
+// Success state: show the candidate's magic link with a copy button so HR can
+// paste it into an email. The link is also clickable to test the flow directly.
+function renderLinkReady(name, link) {
+  const m = document.getElementById('invite-modal');
+  m.innerHTML = `<div class="modal-card">
+    <h2 class="brand">Invite created</h2>
+    <p class="muted">Send ${escAttr(name)} their personal onboarding link. They click it to go straight to their forms — no sign-in needed.</p>
+    <label class="field">
+      <span>Candidate login link</span>
+      <input id="inv-link" readonly />
+    </label>
+    <p class="muted" style="font-size:13px">
+      <a id="inv-link-open" href="#" target="_blank" rel="noopener">Open link to test</a>
+    </p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-secondary" data-act="done">Done</button>
+      <button class="btn btn-primary" data-act="copy">Copy link</button>
+    </div>
+  </div>`;
+  const input = document.getElementById('inv-link');
+  input.value = link;
+  document.getElementById('inv-link-open').href = link;
+}
+
+function escAttr(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function copyLink() {
+  const input = document.getElementById('inv-link');
+  try {
+    await navigator.clipboard.writeText(input.value);
+    showToast('Link copied — paste it into the candidate email');
+  } catch {
+    // Clipboard API blocked (e.g. insecure context) — fall back to selecting.
+    input.focus();
+    input.select();
+    showToast('Press Cmd/Ctrl+C to copy the link');
+  }
+}
+
 // Read field values; validate. Returns the POST body, or null (and shows error).
 export function collectInvite() {
   const val = (id) => document.getElementById(`inv-${id}`).value.trim();
@@ -99,10 +141,9 @@ async function submit() {
   const body = collectInvite();
   if (!body) return;
   try {
-    await request('/invites', { method: 'POST', body });
-    showToast(`Invite sent to ${body.email}`);
-    close();
-    await refresh();
+    const { link } = await request('/invites', { method: 'POST', body });
+    await refresh(); // new row shows up with its "Link sent" timestamp
+    renderLinkReady(body.name, link);
   } catch (err) {
     if (err.status !== 401) {
       const errEl = document.getElementById('inv-error');
@@ -118,7 +159,8 @@ export function openInviteModal() {
   m.hidden = false;
   m.onclick = (e) => {
     const act = e.target.closest('button')?.dataset.act;
-    if (act === 'cancel' || e.target === m) close();
+    if (act === 'cancel' || act === 'done' || e.target === m) close();
     if (act === 'submit') submit();
+    if (act === 'copy') copyLink();
   };
 }

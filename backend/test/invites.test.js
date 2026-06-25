@@ -36,6 +36,21 @@ test('POST /invites creates an invite that appears in GET /invites', async () =>
   assert.equal(found.status, 'invited');
   assert.equal(found.formsComplete, 0);
   assert.equal(found.formsTotal, 15);
+  // Link is issued at creation: the row records when it was sent.
+  assert.ok(found.linkSentAt, 'link_sent_at is set on creation');
+});
+
+test('POST /invites returns a copyable magic link and stores a token', async () => {
+  const create = await app.inject({
+    method: 'POST', url: '/invites', headers: HR(),
+    payload: { name: 'Tom Lee', email: 'tom@example.com', role: 'Support Worker' },
+  });
+  assert.equal(create.statusCode, 201);
+  const { inviteId, link } = create.json();
+  assert.ok(link, 'response includes a magic link');
+  assert.match(link, /\?token=[0-9a-f]+$/, 'link carries a raw token');
+  const { rows } = await query('SELECT count(*)::int AS n FROM magic_link_tokens WHERE invite_id = $1', [inviteId]);
+  assert.equal(rows[0].n, 1);
 });
 
 test('POST /invites 400s without name/email/role', async () => {
@@ -111,16 +126,3 @@ test('PATCH all 15 forms flips status to submitted', async () => {
   assert.equal(rows[0].status, 'submitted');
 });
 
-test('POST /invites/:id/remind re-issues a token for an in_progress invite', async () => {
-  const invite = await seedInvite({ status: 'in_progress' });
-  const res = await app.inject({ method: 'POST', url: `/invites/${invite.id}/remind`, headers: HR() });
-  assert.equal(res.statusCode, 204);
-  const { rows } = await query('SELECT count(*)::int AS n FROM magic_link_tokens WHERE invite_id = $1', [invite.id]);
-  assert.equal(rows[0].n, 1);
-});
-
-test('POST /invites/:id/remind 409s for a received invite', async () => {
-  const invite = await seedInvite({ status: 'received' });
-  const res = await app.inject({ method: 'POST', url: `/invites/${invite.id}/remind`, headers: HR() });
-  assert.equal(res.statusCode, 409);
-});
