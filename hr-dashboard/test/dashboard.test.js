@@ -14,26 +14,20 @@ test('computeMetrics counts total / submitted / received', () => {
   assert.deepEqual(m, { total: 4, pendingReview: 2, received: 1 });
 });
 
-test('actionsFor never shows Download Pack on the table row — it lives inside View record', () => {
-  assert.deepEqual(actionsFor('invited'), ['resend', 'delete']);
-  assert.deepEqual(actionsFor('in_progress'), ['resend', 'delete']);
-  assert.deepEqual(actionsFor('submitted', false, 15, 15), ['view', 'delete']);
-  assert.deepEqual(actionsFor('submitted', true, 15, 15), ['view', 'receipt', 'delete']);
+test('actionsFor never shows Download Pack or Resend on the table row — Download lives inside View record', () => {
+  assert.deepEqual(actionsFor('invited'), ['delete']);
+  assert.deepEqual(actionsFor('in_progress'), ['delete']);
+  assert.deepEqual(actionsFor('submitted', false, 15), ['view', 'delete']);
+  assert.deepEqual(actionsFor('submitted', true, 15), ['view', 'receipt', 'delete']);
   assert.deepEqual(actionsFor('received'), ['view', 'delete']);
 });
 
 test('actionsFor offers View record once any form has progress, even before fully received', () => {
-  assert.deepEqual(actionsFor('invited', false, 0), ['resend', 'delete']);
-  assert.deepEqual(actionsFor('invited', false, 3), ['resend', 'delete'], 'invited candidates have not started forms');
-  assert.deepEqual(actionsFor('in_progress', false, 0), ['resend', 'delete']);
-  assert.deepEqual(actionsFor('in_progress', false, 3), ['view', 'resend', 'delete']);
-  assert.deepEqual(actionsFor('submitted', false, 15, 15), ['view', 'delete']);
-});
-
-test('actionsFor drops Resend link once all forms are complete', () => {
-  assert.deepEqual(actionsFor('in_progress', false, 14, 15), ['view', 'resend', 'delete'], 'still one form short');
-  assert.deepEqual(actionsFor('in_progress', false, 15, 15), ['view', 'delete'], 'all forms complete — no need to resend');
-  assert.deepEqual(actionsFor('submitted', true, 15, 15), ['view', 'receipt', 'delete']);
+  assert.deepEqual(actionsFor('invited', false, 0), ['delete']);
+  assert.deepEqual(actionsFor('invited', false, 3), ['delete'], 'invited candidates have not started forms');
+  assert.deepEqual(actionsFor('in_progress', false, 0), ['delete']);
+  assert.deepEqual(actionsFor('in_progress', false, 3), ['view', 'delete']);
+  assert.deepEqual(actionsFor('submitted', false, 15), ['view', 'delete']);
 });
 
 test('statusLabel humanizes in_progress', () => {

@@ -23,7 +23,8 @@ test('collectInvite rejects a missing name and shows an inline error', () => {
 
 test('collectInvite rejects a malformed email and shows an inline error', () => {
   openInviteModal();
-  document.getElementById('inv-name').value = 'Sarah Okonkwo';
+  document.getElementById('inv-firstName').value = 'Sarah';
+  document.getElementById('inv-surname').value = 'Okonkwo';
   document.getElementById('inv-email').value = 'not-an-email';
   const body = collectInvite();
   assert.equal(body, null);
@@ -32,7 +33,8 @@ test('collectInvite rejects a malformed email and shows an inline error', () => 
 
 test('collectInvite returns the POST body for a valid invite', () => {
   openInviteModal();
-  document.getElementById('inv-name').value = 'Sarah Okonkwo';
+  document.getElementById('inv-firstName').value = 'Sarah';
+  document.getElementById('inv-surname').value = 'Okonkwo';
   document.getElementById('inv-email').value = 'candidate@example.com';
   const body = collectInvite();
   assert.equal(body.name, 'Sarah Okonkwo');

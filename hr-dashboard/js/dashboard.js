@@ -35,19 +35,17 @@ export function statusLabel(status) {
 // Download Pack lives only inside the View record inspector now, not here.
 // `downloaded` gates Confirm Receipt (revealed only after a pack download,
 // which now happens from inside the inspector).
-// `formsComplete`/`formsTotal` gate View record (as soon as any form has
-// progress) and drop Resend link once every form is already complete.
+// `formsComplete` gates View record (as soon as any form has progress).
 // Delete is always offered — HR can remove a candidate at any stage.
-export function actionsFor(status, downloaded = false, formsComplete = 0, formsTotal = 15) {
+export function actionsFor(status, downloaded = false, formsComplete = 0) {
   const view = formsComplete > 0 ? ['view'] : [];
-  const resend = formsTotal > 0 && formsComplete >= formsTotal ? [] : ['resend'];
   switch (status) {
     case 'invited':
-      return ['resend', 'delete'];
+      return ['delete'];
     case 'in_progress':
-      return [...view, ...resend, 'delete'];
+      return [...view, 'delete'];
     case 'submitted':
-      return [...view, ...resend, ...(downloaded ? ['receipt'] : []), 'delete'];
+      return [...view, ...(downloaded ? ['receipt'] : []), 'delete'];
     case 'received':
       return ['view', 'delete'];
     default:
@@ -56,11 +54,11 @@ export function actionsFor(status, downloaded = false, formsComplete = 0, formsT
 }
 
 const ACTION_LABEL = {
-  resend: 'Resend link', receipt: 'Confirm Receipt', view: 'View record', delete: 'Delete',
+  receipt: 'Confirm Receipt', view: 'View record', delete: 'Delete',
 };
 
 function actionButtonsHTML(invite) {
-  return actionsFor(invite.status, hasPack(invite.id), invite.formsComplete, invite.formsTotal)
+  return actionsFor(invite.status, hasPack(invite.id), invite.formsComplete)
     .map((act) => {
       const primary = act === 'delete' ? 'btn-danger' : 'btn-secondary';
       return `<button class="btn btn-sm ${primary}" data-act="${act}">${ACTION_LABEL[act]}</button>`;
@@ -84,8 +82,8 @@ export function rowHTML(invite) {
 function renderMetrics(m) {
   const cards = [
     ['Total Onboarding Candidates', m.total],
-    ['Pending HR Reviews', m.pendingReview],
-    ['Fully Received', m.received],
+    ['Submitted – Awaiting Review', m.pendingReview],
+    ['Reviewed & Completed', m.received],
   ];
   document.getElementById('metrics').innerHTML = cards
     .map(([label, num]) => `<div class="metric-card"><div class="num">${num}</div><div class="label">${escH(label)}</div></div>`)
@@ -124,11 +122,7 @@ async function onMatrixClick(e) {
   const act = btn.dataset.act;
 
   try {
-    if (act === 'resend') {
-      await request(`/invites/${id}/remind`, { method: 'POST' });
-      showToast(`Reminder sent to ${invite.email}`);
-      await refresh(); // picks up the new linkSentAt
-    } else if (act === 'receipt') {
+    if (act === 'receipt') {
       // Irreversible: server-side purge. Guard before firing.
       if (!window.confirm(
         'Confirm receipt of this pack? This permanently deletes it from the relay. '
