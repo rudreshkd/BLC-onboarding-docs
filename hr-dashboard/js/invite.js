@@ -9,21 +9,40 @@ import { refresh } from './dashboard.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const ROLE_OPTIONS = [
+  'Support Worker',
+  'Senior Support Worker',
+  'Team Leader',
+  'Care Coordinator',
+  'Registered Nurse',
+  'Service Manager',
+  'Administrator',
+];
+
 const FIELDS = [
   { id: 'name',    label: 'Candidate name',  type: 'text',  value: '',                    required: true },
   { id: 'email',   label: 'Candidate email', type: 'email', value: '',                    required: true },
-  { id: 'role',    label: 'Role / job title', type: 'text', value: 'Support Worker',       required: true },
-  { id: 'startDate', label: 'Start date',     type: 'text', value: 'TBC' },
-  { id: 'salary',  label: 'Hourly rate',      type: 'text', value: '£12.71/hr' },
+  { id: 'role',    label: 'Role / job title', type: 'select', value: 'Support Worker', options: ROLE_OPTIONS, required: true },
+  { id: 'startDate', label: 'Start date',     type: 'date', value: '' },
+  { id: 'salary',  label: 'Annual salary',    type: 'text', value: '£26,000' },
   { id: 'hours',   label: 'Contracted hours', type: 'text', value: '35 hours per week' },
   { id: 'manager', label: 'Line manager',     type: 'text', value: '' },
 ];
+
+function fieldHTML(f) {
+  if (f.type === 'select') {
+    const opts = f.options.map((o) =>
+      `<option value="${o}"${o === f.value ? ' selected' : ''}>${o}</option>`).join('');
+    return `<select id="inv-${f.id}">${opts}</select>`;
+  }
+  return `<input id="inv-${f.id}" type="${f.type}" value="${f.value}" />`;
+}
 
 function modalHTML() {
   const rows = FIELDS.map((f) => `
     <label class="field">
       <span>${f.label}${f.required ? ' *' : ''}</span>
-      <input id="inv-${f.id}" type="${f.type}" value="${f.value}" />
+      ${fieldHTML(f)}
     </label>`).join('');
   return `<div class="modal-card">
     <h2 class="brand">Invite a candidate</h2>
