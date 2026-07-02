@@ -1,10 +1,11 @@
 // download.js — authenticated pack download (TASK 2.4) + in-memory ZIP cache.
 //
-// The server decrypts and streams the ZIP (no client-side keys). We save the
-// whole ZIP AND keep it parsed in memory so the record inspector (4.3) can pull
-// individual form files without re-downloading.
+// The server decrypts and streams the ZIP (no client-side keys). Review and
+// download are split into two steps so the inspector can require HR to review
+// the documents before the pack can be saved to disk:
 //
-//   downloadPack(id, name)  GET /packs/:id → save .zip → cache JSZip
+//   reviewPack(id)          GET /packs/:id → cache JSZip (no browser download)
+//   downloadPack(id, name)  save the already-reviewed ZIP to disk
 //   fileFromPack(id, path)  read one entry from the cached ZIP → save it
 //   hasPack(id)             is a decrypted ZIP cached this session?
 
@@ -29,16 +30,28 @@ function saveBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-// GET the decrypted pack, save it, and cache the parsed ZIP. 401 is handled by
-// api.js (clears token + redirect). Returns the JSZip instance.
-export async function downloadPack(inviteId, candidateName) {
+// GET the decrypted pack and cache the parsed ZIP — no browser download yet.
+// This is what "Review Documents" calls. Returns the cached ZIP as-is if
+// already fetched this session (401 is handled by api.js: clears token +
+// redirect). Returns the JSZip instance.
+export async function reviewPack(inviteId) {
+  if (packCache.has(inviteId)) return packCache.get(inviteId);
   const res = await request(`/packs/${inviteId}`, { raw: true });
   const buf = await res.arrayBuffer();
-  const safeName = String(candidateName || 'Candidate').replace(/[^\w-]+/g, '_');
-  saveBlob(new Blob([buf], { type: 'application/zip' }), `Brighter_Living_${safeName}_Onboarding_Pack.zip`);
-
   const zip = await JSZip.loadAsync(buf);
   packCache.set(inviteId, zip);
+  return zip;
+}
+
+// Save the already-reviewed ZIP to disk. Requires reviewPack() to have cached
+// it first (enforced by the inspector's button gating) — the pack is never
+// re-fetched here, since review already pulled it into memory.
+export async function downloadPack(inviteId, candidateName) {
+  const zip = packCache.get(inviteId);
+  if (!zip) throw new Error('Review the documents before downloading the pack');
+  const buf = await zip.generateAsync({ type: 'arraybuffer' });
+  const safeName = String(candidateName || 'Candidate').replace(/[^\w-]+/g, '_');
+  saveBlob(new Blob([buf], { type: 'application/zip' }), `Brighter_Living_${safeName}_Onboarding_Pack.zip`);
   return zip;
 }
 

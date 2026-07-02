@@ -3,11 +3,15 @@
 // Shows per-form STATUS from invite.formProgress (status strings only — the
 // backend has no per-form timestamps, D3) grouped by the 5 categories, plus the
 // overall submittedAt + progress. Individual [Download] buttons are enabled only
-// once the pack has been downloaded this session (served from the in-memory ZIP).
+// once the pack has been reviewed this session (served from the in-memory ZIP).
+//
+// Two-step gate on the footer actions:
+//   Review Documents      — disabled until every form is complete.
+//   Complete and Download — disabled until Review Documents has run (pack cached).
 
 import { escH, formatDate, displayName } from './util.js';
 import { showToast } from './toast.js';
-import { hasPack, fileFromPack, downloadPack } from './download.js';
+import { hasPack, fileFromPack, downloadPack, reviewPack } from './download.js';
 import { FORMS, CATEGORIES } from './forms.js';
 
 let current = null; // the invite currently shown
@@ -19,26 +23,40 @@ function statusMark(status) {
 }
 
 export function recordHTML(invite) {
-  const downloaded = hasPack(invite.id);
+  const reviewed = hasPack(invite.id);
+  const allFormsComplete = invite.formsTotal > 0 && invite.formsComplete === invite.formsTotal;
+  const purged = invite.status === 'received' && !reviewed;
+
   const groups = CATEGORIES.map((cat) => {
     const rows = FORMS.filter((f) => f.category === cat).map((f) => {
       const st = invite.formProgress?.[f.id];
-      const dlBtn = `<button class="btn btn-sm btn-secondary" data-file="${escH(f.file)}" ${downloaded ? '' : 'disabled title="Download the pack first"'}>Download</button>`;
+      const dlBtn = `<button class="btn btn-sm btn-secondary" data-file="${escH(f.file)}" ${reviewed ? '' : 'disabled title="Review the documents first"'}>Download</button>`;
       return `<div class="form-row"><span>${escH(f.name)} ${statusMark(st)}</span>${dlBtn}</div>`;
     }).join('');
     return `<div class="cat-group"><h3>${escH(cat)}</h3>${rows}</div>`;
   }).join('');
+
+  const reviewDisabled = purged
+    ? 'disabled title="Pack purged from relay"'
+    : !allFormsComplete
+      ? 'disabled title="All forms must be completed before you can review"'
+      : '';
+  const completeDisabled = purged
+    ? 'disabled title="Pack purged from relay"'
+    : !reviewed
+      ? 'disabled title="Review the documents first"'
+      : '';
 
   return `
     <button class="btn btn-sm btn-secondary" data-act="close">← Back</button>
     <h2>${escH(displayName(invite))} — ${escH(invite.role)}</h2>
     <p class="muted">Status: ${escH(invite.status)} · Submitted: ${formatDate(invite.submittedAt)}</p>
     <p>Progress: ${invite.formsComplete} / ${invite.formsTotal} forms complete</p>
-    ${downloaded ? '' : '<p class="muted" style="font-size:13px">Download the pack to enable individual form downloads below.</p>'}
+    ${reviewed ? '' : '<p class="muted" style="font-size:13px">Review the documents to enable individual form downloads below.</p>'}
     ${groups}
     <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-primary" data-act="download-all" ${invite.status === 'received' && !downloaded ? 'disabled title="Pack purged from relay"' : ''}>Download full pack ↓</button>
-      <button class="btn btn-secondary" data-file="All_Forms_Combined.html" ${downloaded ? '' : 'disabled title="Download the pack first"'}>Open all forms as one document</button>
+      <button class="btn btn-secondary" data-act="review" ${reviewDisabled}>Review Documents</button>
+      <button class="btn btn-primary" data-act="complete-download" ${completeDisabled}>Complete and Download ↓</button>
     </div>`;
 }
 
@@ -58,10 +76,15 @@ async function onClick(e) {
   if (btn.dataset.act === 'close') return close();
 
   try {
-    if (btn.dataset.act === 'download-all') {
+    if (btn.dataset.act === 'review') {
+      await reviewPack(current.id);
+      await fileFromPack(current.id, 'All_Forms_Combined.html');
+      showToast('Documents reviewed');
+      openRecord(current); // re-render: Complete and Download now enabled
+    } else if (btn.dataset.act === 'complete-download') {
       await downloadPack(current.id, displayName(current));
       showToast('Pack downloaded');
-      openRecord(current); // re-render: individual downloads now enabled
+      openRecord(current);
     } else if (btn.dataset.file) {
       await fileFromPack(current.id, btn.dataset.file);
     }
