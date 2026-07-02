@@ -27,7 +27,7 @@ export function computeMetrics(list) {
 export function statusLabel(status) {
   return {
     invited: 'Invited', in_progress: 'In progress',
-    submitted: 'Submitted', received: 'Received',
+    submitted: 'To Review', received: 'Completed',
   }[status] || status;
 }
 
