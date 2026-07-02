@@ -122,3 +122,66 @@ test('onClick swallows a 401 silently but toasts other errors', async () => {
   await new Promise((r) => setTimeout(r, 0));
   assert.equal(toast.textContent, '', '401 errors are handled by api.js and not toasted here');
 });
+
+test('Review Documents stays disabled when formsTotal is 0 (vacuous 0/0 case)', () => {
+  const html = recordHTML({ ...invite, formsComplete: 0, formsTotal: 0 });
+  const reviewBtn = html.match(/<button[^>]*data-act="review"[^>]*>/)[0];
+  assert.ok(reviewBtn.includes('disabled'), 'review must stay disabled when there are no forms at all');
+});
+
+test('review still caches the pack and enables Complete and Download even if pulling the combined doc fails', async () => {
+  resetBody(DASHBOARD_HTML);
+  stubJSZip({}); // no All_Forms_Combined.html entry -> fileFromPack throws
+  mockFetch(() => ({ status: 200, arrayBuffer: new ArrayBuffer(16) }));
+
+  const complete = { ...invite, formsComplete: 15, formsTotal: 15 };
+  openRecord(complete);
+  const panel0 = document.getElementById('inspector');
+
+  click(panel0, '[data-act="review"]');
+  await new Promise((r) => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, 0));
+
+  const toast = document.getElementById('toast');
+  assert.notEqual(toast.textContent, 'Documents reviewed', 'the success toast is not shown on partial failure');
+  // The panel was re-rendered (fresh element) reflecting the now-cached pack,
+  // even though the combined-doc fetch failed.
+  const panel = document.getElementById('inspector');
+  const downloadBtn = panel.querySelector('[data-act="complete-download"]');
+  assert.ok(downloadBtn && !downloadBtn.hasAttribute('disabled'), 'Complete and Download reflects the real cached state, not a stale disabled one');
+});
+
+test('rapid double-click on Review Documents only fires one fetch, not two', async () => {
+  resetBody(DASHBOARD_HTML);
+  stubJSZip({ 'All_Forms_Combined.html': { async: async () => new Blob(['x']) } });
+  const calls = mockFetch(() => ({ status: 200, arrayBuffer: new ArrayBuffer(16) }));
+
+  const complete = { ...invite, formsComplete: 15, formsTotal: 15 };
+  openRecord(complete);
+  const panel = document.getElementById('inspector');
+
+  const btn = panel.querySelector('[data-act="review"]');
+  // Two clicks back-to-back, before the first await has a chance to resolve.
+  btn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  btn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, 0));
+
+  assert.equal(calls.length, 1, 'second click while the first is in flight must be a no-op');
+});
+
+test('a failed review re-enables the button so the user can retry', async () => {
+  resetBody(DASHBOARD_HTML);
+  mockFetch(() => ({ status: 500 }));
+
+  const complete = { ...invite, formsComplete: 15, formsTotal: 15 };
+  openRecord(complete);
+  const panel = document.getElementById('inspector');
+
+  click(panel, '[data-act="review"]');
+  await new Promise((r) => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, 0));
+
+  const btn = panel.querySelector('[data-act="review"]');
+  assert.ok(!btn.hasAttribute('disabled'), 'button re-enabled after a failed review so the user can retry');
+});

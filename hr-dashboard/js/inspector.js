@@ -72,18 +72,32 @@ async function onClick(e) {
 
   if (btn.dataset.act === 'close') return close();
 
+  // Review/Complete-Download both do async work; disable synchronously so a
+  // rapid double-click can't fire two concurrent fetches / two file saves.
+  // Success re-renders via openRecord (fresh button, correct state); on
+  // failure nothing re-renders, so re-enable explicitly in the catch.
+  const reentrant = btn.dataset.act === 'review' || btn.dataset.act === 'complete-download';
+  if (reentrant) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+  }
+
   try {
     if (btn.dataset.act === 'review') {
       await reviewPack(current.id);
+      // Pack is cached (reviewed) even if pulling the combined doc below fails,
+      // so re-render first — Complete and Download must reflect the real state
+      // rather than going stale on a partial failure.
+      openRecord(current);
       await fileFromPack(current.id, 'All_Forms_Combined.html');
       showToast('Documents reviewed');
-      openRecord(current); // re-render: Complete and Download now enabled
     } else if (btn.dataset.act === 'complete-download') {
       await downloadPack(current.id, displayName(current));
       showToast('Pack downloaded');
       openRecord(current);
     }
   } catch (err) {
+    if (reentrant) btn.disabled = false;
     if (err.status !== 401) showToast(err.message || 'Download failed');
   }
 }
