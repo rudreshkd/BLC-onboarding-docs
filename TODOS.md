@@ -73,3 +73,35 @@
 **Context:** Deferred in Phase 4 (`hr-dashboard/`, decision D2). The logic modules already have ~26 jsdom tests; this adds the missing real-browser layer. Pick it up once the dashboard UI stabilizes so selectors don't churn. Run the dashboard via a static server and point Playwright at it with the backend on localhost.
 
 **Depends on:** Phase 4 completion.
+
+---
+
+## TODO-6: Inspector's `current` module variable goes stale across awaits
+
+**What:** `hr-dashboard/js/inspector.js`'s click handlers read the shared module-level `current` (or a snapshot of it) after `await`ing a network call. If HR closes the record panel or opens a different candidate while a review/download is still in flight, the resolved handler can act on the wrong invite, or throw if the panel was closed.
+
+**Why:** Found during adversarial review of the Review Documents / Complete and Download rework (fixes/ui-fixes). The reentrancy fix in that branch reduced the blast radius (onClick now snapshots `current` into a local `invite` at click time, and the busy-set gates against a re-render mid-flight), but the underlying pattern — a mutable module-level "currently open record" reused across async boundaries — predates that change and is not fully solved.
+
+**Pros:** Small, self-contained fix once scoped; the inspector module has no other consumers to coordinate with.
+
+**Cons:** Requires deciding what UX should happen if the panel is closed mid-operation (let it finish silently in the background vs. abort the fetch) — a product call, not just a code fix.
+
+**Context:** Start from `onClick` in `hr-dashboard/js/inspector.js`. Consider an `AbortController` per open invite, or simply guarding every post-await DOM mutation with a check that the panel is still showing the same invite (the `finally` block already does this for the re-render; `close()` and a fresh `openRecord()` call don't yet abort in-flight work).
+
+**Depends on:** none.
+
+---
+
+## TODO-7: Reviewed-pack cache grows unbounded for the session
+
+**What:** `hr-dashboard/js/download.js`'s `packCache` and `rawCache` (Map<inviteId, JSZip|ArrayBuffer>) never evict entries. Every candidate HR reviews in a session stays fully resident in memory (parsed ZIP + raw bytes) until the tab closes.
+
+**Why:** Found during adversarial/red-team review of the Review Documents / Complete and Download rework (fixes/ui-fixes). Not a regression from that change — the original single-cache `packCache` had the same property — but the addition of `rawCache` roughly doubles the per-candidate memory footprint.
+
+**Pros:** Fix is contained to `download.js`; no API changes needed.
+
+**Cons:** Needs a real eviction policy (LRU by last-viewed, or evict on inspector `close()`) and a decision on whether "one care home, one pack open at a time in practice" (the existing code comment) is still an acceptable assumption to lean on instead.
+
+**Context:** Start from `packCache`/`rawCache` in `hr-dashboard/js/download.js`. Simplest fix: evict both caches for an invite when the inspector panel closes for it (hook into `inspector.js`'s `close()`), keeping only the currently-open record cached.
+
+**Depends on:** none.
