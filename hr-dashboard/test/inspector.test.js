@@ -213,3 +213,42 @@ test('a failed review re-enables the button so the user can retry', async () => 
   const btn = panel.querySelector('[data-act="review"]');
   assert.ok(!btn.hasAttribute('disabled'), 'button re-enabled after a failed review so the user can retry');
 });
+
+test('a click landing between reviewPack resolving and fileFromPack resolving is a no-op, even across a mid-flight re-render', async () => {
+  resetBody(DASHBOARD_HTML);
+  let releaseFileFromPack;
+  const gate = new Promise((resolve) => { releaseFileFromPack = resolve; });
+  stubJSZip({ 'All_Forms_Combined.html': { async: async () => { await gate; return new Blob(['x']); } } });
+  const calls = mockFetch(() => ({ status: 200, arrayBuffer: new ArrayBuffer(16) }));
+
+  const complete = { ...invite, formsComplete: 15, formsTotal: 15 };
+  openRecord(complete);
+  const panel0 = document.getElementById('inspector');
+
+  click(panel0, '[data-act="review"]');
+  // Let reviewPack (the fetch) resolve, landing us in the window where the
+  // old code re-rendered a fresh, enabled button while fileFromPack was
+  // still pending on `gate`.
+  await new Promise((r) => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, 0));
+
+  const panelMidFlight = document.getElementById('inspector');
+  const reviewBtnMidFlight = panelMidFlight.querySelector('[data-act="review"]');
+  const downloadBtnMidFlight = panelMidFlight.querySelector('[data-act="complete-download"]');
+  assert.ok(reviewBtnMidFlight.hasAttribute('disabled'), 'review stays disabled while fileFromPack is still pending');
+  assert.ok(downloadBtnMidFlight.hasAttribute('disabled'), 'complete-download also gated while review is still in flight');
+
+  // Second click during the gap must be a no-op: no extra fetch fired.
+  click(panelMidFlight, '[data-act="review"]');
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(calls.length, 1, 'the mid-flight click did not fire a second reviewPack fetch');
+
+  releaseFileFromPack();
+  await new Promise((r) => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, 0));
+
+  const toast = document.getElementById('toast');
+  assert.equal(toast.textContent, 'Documents reviewed');
+  const panelFinal = document.getElementById('inspector');
+  assert.ok(!panelFinal.querySelector('[data-act="complete-download"]').hasAttribute('disabled'), 'settles to enabled once the operation truly completes');
+});
