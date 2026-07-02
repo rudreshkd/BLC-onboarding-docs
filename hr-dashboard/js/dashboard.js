@@ -75,7 +75,7 @@ export function rowHTML(invite) {
     <td data-label="Submitted">${formatDate(invite.submittedAt)}</td>
     <td data-label="Progress">${invite.formsComplete}/${invite.formsTotal}<div class="bar bar-${escH(invite.status)}"><i style="width:${pct}%"></i></div></td>
     <td data-label="Status"><span class="badge badge-${escH(invite.status)}">${escH(statusLabel(invite.status))}</span></td>
-    <td data-label="Actions" class="row-actions">${actionButtonsHTML(invite)}</td>
+    <td data-label="Actions"><div class="row-actions">${actionButtonsHTML(invite)}</div></td>
   </tr>`;
 }
 

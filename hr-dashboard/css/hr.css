@@ -57,7 +57,7 @@ body {
 
 /* Matrix */
 .matrix { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; }
-.matrix th, .matrix td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.matrix th, .matrix td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
 .matrix th { background: var(--green-lt); color: var(--green-md); font-family: var(--font-head); }
 .bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 4px; }
 .bar > i { display: block; height: 100%; background: var(--green); }
@@ -75,7 +75,7 @@ body {
 .badge-submitted::before { content: "↑"; }
 .badge-received { background: var(--gold-lt); color: #0a6b54; } /* darkened for 4.5:1 on gold-lt */
 .badge-received::before { content: "✓"; }
-.row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.row-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
 /* Inspector + modal */
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); }
