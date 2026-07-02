@@ -23,13 +23,6 @@ export default async function hrRoutes(fastify) {
 
     const emailOk = email === config.hr.email;
     const passwordOk = await bcrypt.compare(password, config.hr.passwordHash);
-    console.log('[DEBUG hr login]', {
-      receivedEmail: JSON.stringify(email),
-      expectedEmail: JSON.stringify(config.hr.email),
-      emailOk,
-      receivedPasswordLength: password.length,
-      passwordOk,
-    });
     // Compare both regardless to avoid leaking which field was wrong.
     if (!emailOk || !passwordOk) {
       return reply.code(401).send({ error: 'Invalid credentials' });
