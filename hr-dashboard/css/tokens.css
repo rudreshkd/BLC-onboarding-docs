@@ -10,6 +10,8 @@
   --green-lt: #F0EBF9;  /* Section backgrounds, info boxes */
   --gold:     #71DBD4;  /* Teal — section borders, accent stripe */
   --gold-lt:  #E0F7F7;  /* Declaration box backgrounds */
+  --success:    #1A7F4B;  /* Completed badges — actual green, distinct from the purple "--green" brand token */
+  --success-lt: #E3F5EA;  /* Completed badge background */
   --yellow:    #F3D400;  /* Primary CTA buttons — brighterliving.co.uk's "Speak to us" yellow */
   --yellow-dk: #D6BB00;  /* Primary CTA hover */
   --amber:    #C97B0A;  /* In-progress badges */

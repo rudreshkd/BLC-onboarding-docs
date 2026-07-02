@@ -46,11 +46,6 @@ test('per-form status marks reflect formProgress', () => {
   assert.ok(html.includes('Not started'), 'untouched forms show not started');
 });
 
-test('individual Download buttons are disabled until the pack is reviewed', () => {
-  const html = recordHTML(invite); // pack not cached
-  assert.ok(html.includes('disabled'), 'download buttons disabled pre-review');
-});
-
 test('candidate name + role are escaped', () => {
   const html = recordHTML({ ...invite, role: '<b>x</b>' });
   assert.ok(!html.includes('<b>x</b>'));

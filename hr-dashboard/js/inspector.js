@@ -2,8 +2,7 @@
 //
 // Shows per-form STATUS from invite.formProgress (status strings only — the
 // backend has no per-form timestamps, D3) grouped by the 5 categories, plus the
-// overall submittedAt + progress. Individual [Download] buttons are enabled only
-// once the pack has been reviewed this session (served from the in-memory ZIP).
+// overall submittedAt + progress.
 //
 // Two-step gate on the footer actions:
 //   Review Documents      — disabled until every form is complete.
@@ -17,9 +16,9 @@ import { FORMS, CATEGORIES } from './forms.js';
 let current = null; // the invite currently shown
 
 function statusMark(status) {
-  if (status === 'completed') return '<span class="tick">✓ Completed</span>';
-  if (status === 'in_progress') return '<span class="dash">⏳ In progress</span>';
-  return '<span class="none">— Not started</span>';
+  if (status === 'completed') return '<span class="tick">Completed</span>';
+  if (status === 'in_progress') return '<span class="dash">In progress</span>';
+  return '<span class="none">Not started</span>';
 }
 
 export function recordHTML(invite) {
@@ -30,8 +29,7 @@ export function recordHTML(invite) {
   const groups = CATEGORIES.map((cat) => {
     const rows = FORMS.filter((f) => f.category === cat).map((f) => {
       const st = invite.formProgress?.[f.id];
-      const dlBtn = `<button class="btn btn-sm btn-secondary" data-file="${escH(f.file)}" ${reviewed ? '' : 'disabled title="Review the documents first"'}>Download</button>`;
-      return `<div class="form-row"><span>${escH(f.name)} ${statusMark(st)}</span>${dlBtn}</div>`;
+      return `<div class="form-row"><span>${escH(f.name)}</span>${statusMark(st)}</div>`;
     }).join('');
     return `<div class="cat-group"><h3>${escH(cat)}</h3>${rows}</div>`;
   }).join('');
@@ -48,11 +46,10 @@ export function recordHTML(invite) {
       : '';
 
   return `
-    <button class="btn btn-sm btn-secondary" data-act="close">← Back</button>
+    <button class="btn btn-sm btn-secondary" data-act="close">Back</button>
     <h2>${escH(displayName(invite))} — ${escH(invite.role)}</h2>
     <p class="muted">Status: ${escH(invite.status)} · Submitted: ${formatDate(invite.submittedAt)}</p>
     <p>Progress: ${invite.formsComplete} / ${invite.formsTotal} forms complete</p>
-    ${reviewed ? '' : '<p class="muted" style="font-size:13px">Review the documents to enable individual form downloads below.</p>'}
     ${groups}
     <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-secondary" data-act="review" ${reviewDisabled}>Review Documents</button>
@@ -85,8 +82,6 @@ async function onClick(e) {
       await downloadPack(current.id, displayName(current));
       showToast('Pack downloaded');
       openRecord(current);
-    } else if (btn.dataset.file) {
-      await fileFromPack(current.id, btn.dataset.file);
     }
   } catch (err) {
     if (err.status !== 401) showToast(err.message || 'Download failed');
