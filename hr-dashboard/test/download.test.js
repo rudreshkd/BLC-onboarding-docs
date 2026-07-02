@@ -2,7 +2,7 @@ import './helpers/dom.js';
 import { mockFetch, resetBody, clearSession, DASHBOARD_HTML } from './helpers/dom.js';
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { downloadPack, reviewPack, hasPack, fileFromPack, _clearCache } from '../js/download.js';
+import { downloadPack, reviewPack, hasPack, fileFromPack, _clearCache, _evictRawCache } from '../js/download.js';
 import { setToken } from '../js/api.js';
 
 beforeEach(() => { clearSession(); resetBody(DASHBOARD_HTML); _clearCache(); });
@@ -58,6 +58,22 @@ test('downloadPack saves the already-reviewed ZIP without re-fetching', async ()
   await reviewPack('inv1');
   await downloadPack('inv1', 'Sarah Okonkwo');
   assert.equal(calls.length, 1, 'downloadPack reused the reviewed pack, no extra fetch');
+});
+
+test('downloadPack falls back to zip.generateAsync() when the raw bytes are not cached', async () => {
+  setToken('hr');
+  let generateAsyncCalls = 0;
+  global.JSZip = {
+    loadAsync: async () => ({
+      file: () => null,
+      generateAsync: async () => { generateAsyncCalls++; return new ArrayBuffer(16); },
+    }),
+  };
+  mockFetch(() => ({ status: 200, arrayBuffer: new ArrayBuffer(16) }));
+  await reviewPack('inv3');
+  _evictRawCache('inv3'); // simulate a rawCache miss with packCache still populated
+  await assert.doesNotReject(() => downloadPack('inv3', 'X'));
+  assert.equal(generateAsyncCalls, 1, 'generateAsync fallback used when rawCache has no entry');
 });
 
 test('fileFromPack throws when the pack is not cached', async () => {

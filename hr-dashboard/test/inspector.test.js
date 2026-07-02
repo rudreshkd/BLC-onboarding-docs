@@ -170,6 +170,34 @@ test('rapid double-click on Review Documents only fires one fetch, not two', asy
   assert.equal(calls.length, 1, 'second click while the first is in flight must be a no-op');
 });
 
+test('clicking Complete and Download (once reviewed) saves the pack, toasts, and re-renders', async () => {
+  resetBody(DASHBOARD_HTML);
+  stubJSZip({ 'All_Forms_Combined.html': { async: async () => new Blob(['x']) } });
+  mockFetch(() => ({ status: 200, arrayBuffer: new ArrayBuffer(16) }));
+
+  const complete = { ...invite, formsComplete: 15, formsTotal: 15 };
+  openRecord(complete);
+  const panel1 = document.getElementById('inspector');
+
+  // Review first so Complete and Download is enabled.
+  click(panel1, '[data-act="review"]');
+  await new Promise((r) => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, 0));
+
+  const panel2 = document.getElementById('inspector');
+  const toast = document.getElementById('toast');
+  toast.textContent = '';
+  const downloadBtn = panel2.querySelector('[data-act="complete-download"]');
+  assert.ok(!downloadBtn.hasAttribute('disabled'), 'sanity: enabled after review');
+  click(panel2, '[data-act="complete-download"]');
+  await new Promise((r) => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, 0));
+
+  assert.equal(toast.textContent, 'Pack downloaded', 'success path toasts on Complete and Download');
+  const panel3 = document.getElementById('inspector');
+  assert.ok(panel3.querySelector('[data-act="complete-download"]'), 'panel re-rendered after Complete and Download flow');
+});
+
 test('a failed review re-enables the button so the user can retry', async () => {
   resetBody(DASHBOARD_HTML);
   mockFetch(() => ({ status: 500 }));

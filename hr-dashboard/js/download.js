@@ -77,3 +77,8 @@ export async function fileFromPack(inviteId, fileName) {
 
 // Test seam.
 export function _clearCache() { packCache.clear(); rawCache.clear(); }
+// Test seam: evict only the raw-bytes cache for one invite, simulating the
+// state downloadPack's `rawCache.get(inviteId) || generateAsync(...)` fallback
+// guards against (no other code path currently produces packCache-without-
+// rawCache, so this is the only way to exercise that branch).
+export function _evictRawCache(inviteId) { rawCache.delete(inviteId); }
