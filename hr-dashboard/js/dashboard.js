@@ -15,10 +15,15 @@ let pollTimer = null;
 let inFlight = false;
 let invites = [];
 let wired = false;
+// Row menu (kebab): id of the invite the shared #row-menu dropdown currently
+// targets, and the button that opened it (for aria-expanded + repositioning).
+let menuOpenId = null;
+let menuOpenBtn = null;
 
 export function computeMetrics(list) {
   return {
     total: list.length,
+    inProgress: list.filter((i) => i.status === 'in_progress').length,
     pendingReview: list.filter((i) => i.status === 'submitted').length,
     received: list.filter((i) => i.status === 'received').length,
   };
@@ -54,16 +59,20 @@ export function actionsFor(status, downloaded = false, formsComplete = 0) {
 }
 
 const ACTION_LABEL = {
-  receipt: 'Confirm Receipt', view: 'View record', delete: 'Delete',
+  receipt: 'Confirm Receipt', view: 'View record',
 };
 
+// Delete (and a demo-only Edit placeholder) live behind a "⋮" menu instead of
+// a bare button on every row — actionsFor always includes 'delete', so the
+// kebab is unconditional; only the primary buttons (view/receipt) vary.
 function actionButtonsHTML(invite) {
-  return actionsFor(invite.status, hasPack(invite.id), invite.formsComplete)
-    .map((act) => {
-      const primary = act === 'delete' ? 'btn-danger' : 'btn-secondary';
-      return `<button class="btn btn-sm ${primary}" data-act="${act}">${ACTION_LABEL[act]}</button>`;
-    })
+  const primaryButtons = actionsFor(invite.status, hasPack(invite.id), invite.formsComplete)
+    .filter((act) => act !== 'delete')
+    .map((act) => `<button class="btn btn-sm btn-secondary" data-act="${act}">${ACTION_LABEL[act]}</button>`)
     .join('');
+  const kebab = `<button type="button" class="btn btn-sm btn-secondary kebab-btn" data-act="menu"
+    aria-haspopup="true" aria-expanded="false" aria-label="More actions for ${escH(displayName(invite))}">&#8942;</button>`;
+  return primaryButtons + kebab;
 }
 
 export function rowHTML(invite) {
@@ -79,18 +88,25 @@ export function rowHTML(invite) {
   </tr>`;
 }
 
+// Each card's colour matches its equivalent status badge (badge-in_progress /
+// badge-submitted / badge-received in hr.css), so the metrics band reads as
+// the same colour language as the Status column below it. Total stays neutral
+// since it isn't tied to one status.
 function renderMetrics(m) {
   const cards = [
-    ['Total Onboarding Candidates', m.total],
-    ['Submitted – Awaiting Review', m.pendingReview],
-    ['Reviewed & Completed', m.received],
+    ['Total Onboarding Candidates', m.total, 'total'],
+    ['In Progress', m.inProgress, 'in_progress'],
+    ['Submitted – Awaiting Review', m.pendingReview, 'submitted'],
+    ['Reviewed & Completed', m.received, 'received'],
   ];
   document.getElementById('metrics').innerHTML = cards
-    .map(([label, num]) => `<div class="metric-card"><div class="num">${num}</div><div class="label">${escH(label)}</div></div>`)
+    .map(([label, num, kind]) =>
+      `<div class="metric-card metric-${kind}"><div class="num">${num}</div><div class="label">${escH(label)}</div></div>`)
     .join('');
 }
 
 function renderMatrix(list) {
+  closeMenu(); // a re-render replaces the row DOM — don't leave the menu pointing at a detached button
   const body = document.getElementById('matrix-body');
   const empty = document.getElementById('matrix-empty');
   if (!list.length) { body.innerHTML = ''; if (empty) empty.hidden = false; return; }
@@ -113,10 +129,72 @@ function renderSkeleton(rows = 4) {
     Array.from({ length: rows }, () => `<tr class="skeleton-row">${cell.repeat(6)}</tr>`).join('');
 }
 
+/* ---------- row menu (kebab) ---------- */
+
+function closeMenu() {
+  if (!menuOpenId) return;
+  document.getElementById('row-menu').hidden = true;
+  menuOpenBtn?.setAttribute('aria-expanded', 'false');
+  menuOpenId = null;
+  menuOpenBtn = null;
+}
+
+// Fixed-position so the dropdown is never clipped by the matrix's own
+// overflow rules — right-aligned under the kebab, flipped above it when
+// there isn't room below (e.g. the last couple of rows in the table).
+function positionMenu(btn) {
+  const menu = document.getElementById('row-menu');
+  const r = btn.getBoundingClientRect();
+  menu.hidden = false; // must be visible to measure its height
+  const menuH = menu.offsetHeight;
+  const opensUp = r.bottom + menuH + 6 > window.innerHeight;
+  menu.style.top = `${opensUp ? r.top - menuH - 6 : r.bottom + 6}px`;
+  menu.style.left = `${Math.max(8, r.right - menu.offsetWidth)}px`;
+}
+
+function openMenu(btn, id) {
+  if (menuOpenId === id) { closeMenu(); return; }
+  closeMenu();
+  menuOpenId = id;
+  menuOpenBtn = btn;
+  btn.setAttribute('aria-expanded', 'true');
+  positionMenu(btn);
+}
+
+async function deleteInvite(id, btn) {
+  const invite = invites.find((i) => i.id === id);
+  if (!invite) return;
+  if (!window.confirm(
+    `Delete ${invite.name || invite.email}? This permanently removes their invite and `
+    + 'onboarding record. This cannot be undone.')) return;
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+    await request(`/invites/${id}`, { method: 'DELETE' });
+    showToast('Candidate deleted');
+    await refresh();
+  } catch (err) {
+    if (err.status !== 401) showToast(err.message || 'Action failed');
+    render(invites);
+  }
+}
+
+// Edit is a demo-only placeholder — deliberately does nothing but close the menu.
+function onRowMenuClick(e) {
+  const btn = e.target.closest('button[data-menu-act]');
+  if (!btn) return;
+  const id = menuOpenId;
+  const act = btn.dataset.menuAct;
+  closeMenu();
+  if (act === 'delete' && id) deleteInvite(id);
+}
+
 async function onMatrixClick(e) {
   const btn = e.target.closest('button[data-act]');
   if (!btn) return;
   const id = btn.closest('tr').dataset.id;
+
+  if (btn.dataset.act === 'menu') { openMenu(btn, id); return; }
+
   const invite = invites.find((i) => i.id === id);
   if (!invite) return;
   const act = btn.dataset.act;
@@ -134,15 +212,6 @@ async function onMatrixClick(e) {
       await refresh(); // status → received
     } else if (act === 'view') {
       openRecord(invite);
-    } else if (act === 'delete') {
-      if (!window.confirm(
-        `Delete ${invite.name || invite.email}? This permanently removes their invite and `
-        + 'onboarding record. This cannot be undone.')) return;
-      btn.disabled = true;
-      btn.textContent = 'Deleting…';
-      await request(`/invites/${id}`, { method: 'DELETE' });
-      showToast('Candidate deleted');
-      await refresh();
     }
   } catch (err) {
     if (err.status !== 401) showToast(err.message || 'Action failed');
@@ -166,6 +235,16 @@ export async function refresh() {
 function wireOnce() {
   if (wired) return;
   document.getElementById('matrix-body').addEventListener('click', onMatrixClick);
+  document.getElementById('row-menu').addEventListener('click', onRowMenuClick);
+  // Close the row menu on an outside click, Escape, or the page moving under it.
+  document.addEventListener('click', (e) => {
+    if (!menuOpenId) return;
+    if (e.target.closest('#row-menu') || e.target.closest('[data-act="menu"]')) return;
+    closeMenu();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+  window.addEventListener('scroll', closeMenu, true);
+  window.addEventListener('resize', closeMenu);
   // The pack download now happens inside the inspector; re-render the table on
   // close so a freshly-revealed Confirm Receipt button shows without waiting
   // for the next poll.

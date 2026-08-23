@@ -49,11 +49,22 @@ body {
 .topbar-actions { display: flex; gap: 8px; }
 .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
 
-/* Metrics */
+/* Metrics — each card's text colour matches its equivalent status badge below
+   (badge-in_progress / badge-submitted / badge-received), so the two bands
+   read as one colour language. The card backgrounds are the same hue as
+   those badges but a touch darker, so the cards read as their own distinct
+   surface rather than disappearing into the page background. Total is the
+   one exception: solid dark purple, since it isn't tied to a single status.
+   All four share the same box (size, radius, shadow, padding) so the row
+   stays clean and inline. */
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.metric-card { background: var(--green); color: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(28,26,46,.18); }
+.metric-card { border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(28,26,46,.18); border: 1px solid var(--border); }
 .metric-card .num { font-family: var(--font-head); font-weight: 700; font-size: 32px; }
 .metric-card .label { font-size: 13px; opacity: .9; }
+.metric-total { background: var(--green-md); color: #fff; }
+.metric-in_progress { background: #f8e4bd; color: var(--amber); } /* badge-in_progress's #fdf0d8, slightly darker */
+.metric-submitted { background: #e5dcf3; color: var(--green-md); } /* badge-submitted's --green-lt, slightly darker */
+.metric-received { background: #d2f0ef; color: #0a6b54; } /* badge-received's --gold-lt, slightly darker */
 
 /* Matrix */
 .matrix { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; }
@@ -75,7 +86,30 @@ body {
 .badge-submitted::before { content: "↑"; }
 .badge-received { background: var(--gold-lt); color: #0a6b54; } /* darkened for 4.5:1 on gold-lt */
 .badge-received::before { content: "✓"; }
-.row-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* flex-end so the kebab lands in the same spot on every row, whether or not
+   a primary button (View record / Confirm Receipt) is present next to it —
+   otherwise rows with no primary button (e.g. Invited) pack it flush left,
+   out of line with every other row's "⋮". */
+.row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+
+/* Row menu (kebab) — Edit/Delete tucked behind "⋮" instead of a bare Delete
+   button on every row. The dropdown itself is a single shared element
+   (#row-menu) positioned in JS with `position: fixed`, not nested in the
+   table, so it's never clipped by the matrix's own overflow: hidden/auto. */
+.kebab-btn { min-width: 32px; padding: 5px 8px; font-size: 16px; line-height: 1; letter-spacing: 1px; }
+.row-menu-dropdown {
+  position: fixed; background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(28,26,46,.22); min-width: 130px; padding: 4px; z-index: 60;
+}
+.row-menu-dropdown[hidden] { display: none; }
+.row-menu-item {
+  display: block; width: 100%; text-align: left; padding: 8px 12px; background: none;
+  border: none; border-radius: 6px; font-family: var(--font-body); font-size: 13px;
+  color: var(--text); cursor: pointer;
+}
+.row-menu-item:hover, .row-menu-item:focus-visible { background: var(--green-lt); }
+.row-menu-item-danger { color: var(--red); }
+.row-menu-item-danger:hover, .row-menu-item-danger:focus-visible { background: var(--red-lt); }
 
 /* Inspector + modal */
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); }

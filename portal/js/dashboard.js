@@ -138,15 +138,16 @@ export function fillProfileForm() {
 }
 
 export function saveDetails() {
-  const required = ['firstName', 'lastName', 'dob', 'ni', 'addr1', 'city', 'postcode', 'mobile', 'email'];
+  const required = ['firstName', 'lastName', 'dob', 'sex', 'ni', 'addr1', 'city', 'postcode', 'mobile', 'email'];
   let valid = true;
   required.forEach(key => {
     const el = document.getElementById(`profile-${key}`);
     if (el && !el.value.trim()) {
       el.closest('.field')?.classList.add('field-error');
       valid = false;
-      el.addEventListener('input', () =>
-        el.closest('.field')?.classList.remove('field-error'), { once: true });
+      const clear = () => el.closest('.field')?.classList.remove('field-error');
+      el.addEventListener('input', clear, { once: true });
+      if (el.tagName === 'SELECT') el.addEventListener('change', clear, { once: true });
     }
   });
   if (!valid) {

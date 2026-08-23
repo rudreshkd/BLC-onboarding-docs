@@ -7,11 +7,11 @@ import { setToken } from '../js/api.js';
 
 beforeEach(() => { clearSession(); resetBody(DASHBOARD_HTML); });
 
-test('computeMetrics counts total / submitted / received', () => {
+test('computeMetrics counts total / in progress / submitted / received', () => {
   const m = computeMetrics([
-    { status: 'invited' }, { status: 'submitted' }, { status: 'submitted' }, { status: 'received' },
+    { status: 'invited' }, { status: 'in_progress' }, { status: 'submitted' }, { status: 'submitted' }, { status: 'received' },
   ]);
-  assert.deepEqual(m, { total: 4, pendingReview: 2, received: 1 });
+  assert.deepEqual(m, { total: 5, inProgress: 1, pendingReview: 2, received: 1 });
 });
 
 test('actionsFor never shows Download Pack or Resend on the table row — Download lives inside View record', () => {
@@ -70,7 +70,7 @@ test('rowHTML prefers invite.name over the email-derived guess', () => {
 test('render populates metrics + matrix; empty list shows the empty note', () => {
   render([{ id: '1', email: 'a@b.com', role: 'SW', status: 'invited', formProgress: {}, formsComplete: 0, formsTotal: 15, submittedAt: null }]);
   assert.ok(document.getElementById('matrix-body').innerHTML.includes('a'));
-  assert.equal(document.getElementById('metrics').children.length, 3);
+  assert.equal(document.getElementById('metrics').children.length, 4);
   render([]);
   assert.equal(document.getElementById('matrix-empty').hidden, false);
 });
