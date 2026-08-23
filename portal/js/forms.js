@@ -187,7 +187,7 @@ const FORM_BODIES = {
       </div>`)
       + section('Role details', `<div class="grid-2">
           ${pre('pf-role', 'Role', state.offer.role)}
-          ${pre('pf-start', 'Start date', formatDate(state.offer.startDate))}
+          ${fld('startDate', 'Start date', { type: 'date', req: true, value: state.offer.startDate })}
           ${fld('leavingDate', 'Leaving date (leave blank for new starters)', { type: 'date' })}
         </div>`)
       + section('About you', ta('interests', 'Personal interests — tell residents and colleagues a little about yourself'));
@@ -257,7 +257,10 @@ const FORM_BODIES = {
     return section('Your details (from your profile)', pre('pf-name', 'Full name', fullName()))
       + section('Vaccination status', [
           yn('hepbVaccinated', 'Have you been vaccinated against Hepatitis B?', { req: true, reveal: 'cond-hepb' }),
-          cond('cond-hepb', repeater('dose', doseBlock(1), 'dose', { max: 3 })),
+          cond('cond-hepb', [
+            fld('lastVaccinationDate', 'My last vaccination date', { type: 'date', req: true }),
+            repeater('dose', doseBlock(1), 'dose', { max: 3 }),
+          ].join('')),
         ].join(''));
   },
 

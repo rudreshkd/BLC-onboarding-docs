@@ -14,7 +14,7 @@ const ROLE_OPTIONS = [
   'Senior Support Worker',
   'Team Leader',
   'Care Coordinator',
-  'Registered Nurse',
+  'Registered Manager',
   'Service Manager',
   'Administrator',
 ];
@@ -24,7 +24,7 @@ const FIELDS = [
   { id: 'surname',   label: 'Surname',        type: 'text',  value: '',                    required: true },
   { id: 'email',   label: 'Candidate email', type: 'email', value: '',                    required: true },
   { id: 'role',    label: 'Role / job title', type: 'select', value: 'Support Worker', options: ROLE_OPTIONS, required: true },
-  { id: 'startDate', label: 'Start date',     type: 'date', value: '' },
+  { id: 'startDate', label: 'Start date',     type: 'date', value: '', required: true },
   { id: 'salary',  label: 'Annual salary',    type: 'text', value: '£26,000' },
   { id: 'hours',   label: 'Contracted hours', type: 'text', value: '35 hours per week' },
   { id: 'manager', label: 'Line manager',     type: 'text', value: '' },
@@ -46,7 +46,7 @@ function modalHTML() {
       ${fieldHTML(f)}
     </label>`).join('');
   return `<div class="modal-card">
-    <h2 class="brand">Invite a candidate</h2>
+    <h2 class="brand">Set Up New Candidate</h2>
     ${rows}
     <p id="inv-error" class="error-msg" role="alert" hidden></p>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
