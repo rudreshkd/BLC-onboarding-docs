@@ -30,7 +30,7 @@ const LABELS = {
   nightDuties: 'Able to undertake night duties', sickDays: 'Sick days in last 2 years',
   longIllness: 'Illness over one week', longIllnessDetail: 'Illness details',
   impairment: 'Physical or mental impairment', impairmentAdjustments: 'Adjustments needed',
-  hepbVaccinated: 'Hepatitis B vaccinated',
+  hepbVaccinated: 'Hepatitis B vaccinated', lastVaccinationDate: 'Last vaccination date',
   covidDose1: '1st dose date', covidDose2: '2nd dose date', covidBooster: 'Booster date',
   covidManufacturer: 'Vaccine manufacturer', covidNoReason: 'Reason not vaccinated',
   gdprDeclaration: 'GDPR declaration agreed', confidentialityAgreed: 'Confidentiality agreement accepted',
