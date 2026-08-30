@@ -24,7 +24,11 @@ export const DASHBOARD_HTML = `
   <p id="matrix-empty" hidden></p>
   <aside id="inspector" hidden></aside>
   <div id="inspector-scrim" hidden></div>
-  <div id="invite-modal" hidden></div>`;
+  <div id="invite-modal" hidden></div>
+  <div id="row-menu" hidden>
+    <button type="button" data-menu-act="edit">Edit</button>
+    <button type="button" data-menu-act="delete">Delete</button>
+  </div>`;
 
 export function resetBody(html = '') {
   document.body.innerHTML = html;

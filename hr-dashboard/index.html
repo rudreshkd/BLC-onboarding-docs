@@ -76,6 +76,15 @@
   <!-- ============ INVITE MODAL ============ -->
   <div id="invite-modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Invite a candidate"></div>
 
+  <!-- ============ ROW MENU (kebab) ============ -->
+  <!-- One shared dropdown, positioned in JS next to whichever row's "⋮" was
+       clicked — kept outside the table so the matrix's own overflow rules
+       never clip it. -->
+  <div id="row-menu" class="row-menu-dropdown" hidden role="menu">
+    <button type="button" class="row-menu-item" data-menu-act="edit" role="menuitem">Edit</button>
+    <button type="button" class="row-menu-item row-menu-item-danger" data-menu-act="delete" role="menuitem">Delete</button>
+  </div>
+
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
