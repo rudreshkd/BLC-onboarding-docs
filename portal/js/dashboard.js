@@ -77,25 +77,23 @@ export function renderDashboard() {
   if (currentPart === 1) { p1.setAttribute('aria-current', 'step'); p2.removeAttribute('aria-current'); }
   else { p2.setAttribute('aria-current', 'step'); p1.removeAttribute('aria-current'); }
 
+  // Part 1 hint walks the sequence; the hero Start/Continue button is the
+  // single entry point for personal details (no duplicate row for it).
+  let part1Hint = '';
+  if (!state.profileComplete) {
+    part1Hint = 'Press Start to add your details, then complete your employment history';
+  } else if (!gateOpen) {
+    part1Hint = 'Details saved — complete your employment history to unlock the rest of your forms';
+  }
   const heading = document.getElementById('part-heading');
   heading.innerHTML = currentPart === 1
     ? `Part 1 — Your details and employment history
-       <span class="step-hint">Complete both to unlock the rest of your forms</span>`
+       ${part1Hint ? `<span class="step-hint">${part1Hint}</span>` : ''}`
     : `Part 2 — Remaining forms`;
 
-  // Part 1: personal details profile + the forms BLC wants up front.
-  const profileStatus = state.profileComplete ? 'completed' : 'notstarted';
+  // Part 1: the forms BLC wants up front (details live behind the hero button).
   const step1 = document.getElementById('dash-step1-list');
-  step1.innerHTML = `<li>
-      <button type="button" class="form-row" data-profile-row>
-        <span class="meta">
-          <span class="name">Your Personal Details</span>
-          <span class="sub">Fill in once — pre-fills every form</span>
-        </span>
-        <span class="right">${badgeHTML(profileStatus)}</span>
-      </button>
-    </li>`
-    + REQUIRED_FIRST.map(id => formRowHTML(FORMS.find(f => f.id === id))).join('');
+  step1.innerHTML = REQUIRED_FIRST.map(id => formRowHTML(FORMS.find(f => f.id === id))).join('');
 
   // Part 2: everything else, only rendered visible once Part 1 is done.
   const step2 = document.getElementById('dash-step2-list');
@@ -109,7 +107,6 @@ export function renderDashboard() {
   // Submitting the pack belongs to Part 2; downloads stay available in both.
   document.getElementById('submit-wrap').style.display = currentPart === 2 ? '' : 'none';
 
-  step1.querySelector('[data-profile-row]').addEventListener('click', openProfile);
   [step1, step2].forEach(list =>
     list.querySelectorAll('[data-form]').forEach(btn =>
       btn.addEventListener('click', () => openForm(btn.dataset.form))));
