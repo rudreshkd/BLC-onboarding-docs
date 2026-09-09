@@ -77,23 +77,27 @@ export function renderDashboard() {
   if (currentPart === 1) { p1.setAttribute('aria-current', 'step'); p2.removeAttribute('aria-current'); }
   else { p2.setAttribute('aria-current', 'step'); p1.removeAttribute('aria-current'); }
 
-  // Part 1 hint walks the sequence; the hero Start/Continue button is the
-  // single entry point for personal details (no duplicate row for it).
-  let part1Hint = '';
-  if (!state.profileComplete) {
-    part1Hint = 'Press Start to add your details, then complete your employment history';
-  } else if (!gateOpen) {
-    part1Hint = 'Details saved — complete your employment history to unlock the rest of your forms';
-  }
   const heading = document.getElementById('part-heading');
   heading.innerHTML = currentPart === 1
     ? `Part 1 — Your details and employment history
-       ${part1Hint ? `<span class="step-hint">${part1Hint}</span>` : ''}`
+       ${gateOpen ? '' : '<span class="step-hint">Complete both to unlock the rest of your forms</span>'}`
     : `Part 2 — Remaining forms`;
 
-  // Part 1: the forms BLC wants up front (details live behind the hero button).
+  // Part 1: enter-your-details row + the forms BLC wants up front. The row is
+  // the single entry point for personal details on this part.
+  const profileStatus = state.profileComplete ? 'completed' : 'notstarted';
   const step1 = document.getElementById('dash-step1-list');
-  step1.innerHTML = REQUIRED_FIRST.map(id => formRowHTML(FORMS.find(f => f.id === id))).join('');
+  step1.innerHTML = `<li>
+      <button type="button" class="form-row" data-profile-row>
+        <span class="meta">
+          <span class="name">${state.profileComplete ? 'Your details' : 'Enter your details'}</span>
+          <span class="sub">Fill in once — pre-fills every form</span>
+        </span>
+        <span class="right">${badgeHTML(profileStatus)}</span>
+      </button>
+    </li>`
+    + REQUIRED_FIRST.map(id => formRowHTML(FORMS.find(f => f.id === id))).join('');
+  step1.querySelector('[data-profile-row]').addEventListener('click', openProfile);
 
   // Part 2: everything else, only rendered visible once Part 1 is done.
   const step2 = document.getElementById('dash-step2-list');
@@ -111,11 +115,11 @@ export function renderDashboard() {
     list.querySelectorAll('[data-form]').forEach(btn =>
       btn.addEventListener('click', () => openForm(btn.dataset.form))));
 
-  // Hero CTA walks the candidate through the required sequence.
+  // Hero button only appears on Part 2, as the way back into saved details
+  // (on Part 1 the enter-your-details row is the entry point).
   const cta = document.getElementById('btn-edit-profile');
-  if (!state.profileComplete) cta.textContent = 'Start';
-  else if (!gateOpen) cta.textContent = 'Continue';
-  else cta.textContent = 'Edit your details';
+  cta.style.display = currentPart === 2 ? '' : 'none';
+  cta.textContent = 'Edit your details';
 
   const submitBtn = document.getElementById('btn-submit-pack');
   const complete = allComplete();
@@ -196,15 +200,7 @@ export function wireDashboard() {
   document.getElementById('stepper-part2').addEventListener('click', () => {
     currentPart = 2; renderDashboard();
   });
-  // Hero CTA: drive the required sequence — details, then the Step 1 forms,
-  // then it settles into a plain edit-details entry point.
-  document.getElementById('btn-edit-profile').addEventListener('click', () => {
-    if (state.profileComplete && !gateComplete()) {
-      const nextId = REQUIRED_FIRST.find(id => statusOf(id) !== 'completed');
-      if (nextId) { openForm(nextId); return; }
-    }
-    openProfile();
-  });
+  document.getElementById('btn-edit-profile').addEventListener('click', openProfile);
 }
 
 /* ---------- profile form ---------- */
