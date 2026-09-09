@@ -152,6 +152,30 @@ h1, h2, h3, h4, label, .btn { font-family: var(--font-head); }
 .progress-label { font-size: 13px; color: var(--muted); }
 
 .form-list { list-style: none; margin: 0; padding: 0; }
+
+/* ---------- Two-step dashboard ---------- */
+.step-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 15px;
+  color: var(--green-md);
+  margin: 20px 0 10px;
+}
+.step-heading .step-hint {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Locked rows: visible so the candidate sees the full journey, but clearly
+   inert. Opacity transition makes the unlock moment read as progress. */
+.form-row { transition: opacity .35s; }
+.form-row-locked { opacity: .55; }
+.form-row-locked:hover { border-color: var(--border); background: #fff; }
+.form-row-locked .name { color: var(--muted); }
 .form-row {
   display: flex;
   align-items: center;

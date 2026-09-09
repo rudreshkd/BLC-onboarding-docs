@@ -71,7 +71,14 @@
         <button type="button" class="btn btn-start" id="btn-edit-profile">Start</button>
       </div>
 
-      <ul class="form-list" id="dash-form-list"></ul>
+      <h2 class="step-heading">Step 1 — Complete these first</h2>
+      <ul class="form-list" id="dash-step1-list"></ul>
+
+      <h2 class="step-heading">Step 2 — Remaining forms
+        <span class="step-hint" id="step2-hint">Unlocks after Step 1</span>
+      </h2>
+      <div class="outstanding-list" id="gate-hint" style="display:none"></div>
+      <ul class="form-list" id="dash-step2-list"></ul>
 
       <div class="submit-pack-area" id="submit-pack-area">
         <button type="button" class="btn" id="btn-submit-pack" disabled>Submit pack to HR</button>

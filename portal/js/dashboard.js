@@ -1,6 +1,6 @@
 // dashboard.js — renderDashboard, badgeHTML, submit-pack gating
 
-import { state, FORMS, escH, statusOf, completedCount, allComplete, formatDate } from './state.js';
+import { state, FORMS, escH, statusOf, completedCount, allComplete, formatDate, REQUIRED_FIRST, gateComplete } from './state.js';
 import { openForm } from './forms.js';
 import { saveDraft, clearDraft } from './draft.js';
 import { showView } from './nav.js';
@@ -20,9 +20,45 @@ export function badgeHTML(status) {
   return `<span class="badge ${cls}"><span aria-hidden="true">${glyph}</span>${label}</span>`;
 }
 
+function lockedBadgeHTML() {
+  return `<span class="badge badge-locked"><span aria-hidden="true">&#128274;</span>Locked</span>`;
+}
+
+function formRowHTML(f, { locked = false } = {}) {
+  const status = statusOf(f.id);
+  const sub = state.submissions[f.id];
+  const submitted = status === 'completed' && sub?.signedAt
+    ? `Submitted ${formatDate(sub.signedAt)}` : '';
+  const lockedAttrs = locked ? ' aria-disabled="true" data-locked="true"' : '';
+  return `<li>
+    <button type="button" class="form-row${locked ? ' form-row-locked' : ''}" data-form="${f.id}"${lockedAttrs}>
+      <span class="meta">
+        <span class="name">${escH(f.name)}</span>
+        ${submitted ? `<span class="sub">${submitted}</span>` : ''}
+      </span>
+      <span class="right">${locked ? lockedBadgeHTML() : badgeHTML(status)}</span>
+    </button>
+  </li>`;
+}
+
+// Names of whatever Step 1 items are still outstanding, for hints and toasts.
+function gateOutstanding() {
+  const items = [];
+  if (!state.profileComplete) items.push('Your Personal Details');
+  REQUIRED_FIRST.forEach(id => {
+    if (statusOf(id) !== 'completed') items.push(FORMS.find(f => f.id === id).name);
+  });
+  return items;
+}
+
+// Detect the Step 1 → Step 2 unlock moment across re-renders (session-local UI
+// state only; deliberately not persisted).
+let lastGateState = null;
+
 export function renderDashboard() {
   const done = completedCount();
   const total = FORMS.length;
+  const gateOpen = gateComplete();
 
   document.getElementById('dash-welcome').textContent =
     `Welcome, ${state.profile.firstName || 'there'}!`;
@@ -33,31 +69,72 @@ export function renderDashboard() {
   const label = document.getElementById('dash-progress-label');
   label.textContent = `${done} of ${total} forms complete`;
 
-  const list = document.getElementById('dash-form-list');
-  list.innerHTML = FORMS.map(f => {
-    const status = statusOf(f.id);
-    const sub = state.submissions[f.id];
-    const submitted = status === 'completed' && sub?.signedAt
-      ? ` · Submitted ${formatDate(sub.signedAt)}` : '';
-    return `<li>
-      <button type="button" class="form-row" data-form="${f.id}">
+  // Step 1: personal details profile + the forms BLC wants up front.
+  const profileStatus = state.profileComplete ? 'completed' : 'notstarted';
+  const step1 = document.getElementById('dash-step1-list');
+  step1.innerHTML = `<li>
+      <button type="button" class="form-row" data-profile-row>
         <span class="meta">
-          <span class="name">${escH(f.name)}</span>
-          ${submitted ? `<span class="sub">${submitted.replace(/^ · /, '')}</span>` : ''}
+          <span class="name">Your Personal Details</span>
+          <span class="sub">Fill in once — pre-fills every form</span>
         </span>
-        <span class="right">${badgeHTML(status)}</span>
+        <span class="right">${badgeHTML(profileStatus)}</span>
       </button>
-    </li>`;
-  }).join('');
+    </li>`
+    + REQUIRED_FIRST.map(id => formRowHTML(FORMS.find(f => f.id === id))).join('');
 
-  list.querySelectorAll('[data-form]').forEach(btn =>
-    btn.addEventListener('click', () => openForm(btn.dataset.form)));
+  // Step 2: everything else, locked until Step 1 is done. Forms already
+  // completed stay openable (read-only) even if the gate is somehow unmet.
+  const step2 = document.getElementById('dash-step2-list');
+  step2.innerHTML = FORMS
+    .filter(f => !REQUIRED_FIRST.includes(f.id))
+    .map(f => formRowHTML(f, { locked: !gateOpen && statusOf(f.id) !== 'completed' }))
+    .join('');
+
+  document.getElementById('step2-hint').style.display = gateOpen ? 'none' : 'inline';
+  document.getElementById('gate-hint').style.display = 'none';
+
+  step1.querySelector('[data-profile-row]').addEventListener('click', openProfile);
+  [step1, step2].forEach(list =>
+    list.querySelectorAll('[data-form]').forEach(btn =>
+      btn.addEventListener('click', () => {
+        if (btn.dataset.locked) showGateHint();
+        else openForm(btn.dataset.form);
+      })));
+
+  // Hero CTA walks the candidate through the required sequence.
+  const cta = document.getElementById('btn-edit-profile');
+  if (!state.profileComplete) cta.textContent = 'Start';
+  else if (!gateOpen) cta.textContent = 'Continue';
+  else cta.textContent = 'Edit your details';
+
+  // Celebrate the unlock the first time the gate opens this session.
+  if (lastGateState === false && gateOpen && !allComplete()) {
+    const left = FORMS.filter(f => statusOf(f.id) !== 'completed').length;
+    showToast(`All forms unlocked — ${left} to go`);
+  }
+  lastGateState = gateOpen;
 
   const submitBtn = document.getElementById('btn-submit-pack');
   const complete = allComplete();
   submitBtn.disabled = !complete || state.packSubmitted;
   submitBtn.textContent = state.packSubmitted ? 'Pack sent to HR ✓' : 'Submit pack to HR';
   document.getElementById('outstanding-list').style.display = 'none';
+}
+
+function openProfile() {
+  fillProfileForm(); // repopulate inputs from saved state each time it opens
+  showView('view-profile');
+}
+
+// Locked-row click: explain the gate instead of dead-ending (mirrors the
+// disabled submit button's outstanding-forms pattern).
+export function showGateHint() {
+  const box = document.getElementById('gate-hint');
+  box.innerHTML = `<strong>These forms unlock after Step 1.</strong>
+    <ul>${gateOutstanding().map(n => `<li>${escH(n)}</li>`).join('')}</ul>`;
+  box.style.display = 'block';
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // Disabled-button area click: show which forms are outstanding (requirements §4.3)
@@ -119,9 +196,14 @@ export function wireDashboard() {
   document.getElementById('btn-modal-back').addEventListener('click', () =>
     document.getElementById('modal-submit-pack').classList.remove('open'));
   document.getElementById('link-downloads').addEventListener('click', showDownloads);
+  // Hero CTA: drive the required sequence — details, then the Step 1 forms,
+  // then it settles into a plain edit-details entry point.
   document.getElementById('btn-edit-profile').addEventListener('click', () => {
-    fillProfileForm(); // repopulate inputs from saved state each time it opens
-    showView('view-profile');
+    if (state.profileComplete && !gateComplete()) {
+      const nextId = REQUIRED_FIRST.find(id => statusOf(id) !== 'completed');
+      if (nextId) { openForm(nextId); return; }
+    }
+    openProfile();
   });
 }
 

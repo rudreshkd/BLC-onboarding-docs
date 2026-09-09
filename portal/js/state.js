@@ -109,6 +109,16 @@ export function allComplete() {
   return completedCount() === FORMS.length;
 }
 
+// Forms BLC requires up front, alongside the personal details profile.
+// Everything else stays locked until these are done. Always derived, never
+// stored, so restored drafts and refreshes re-evaluate it correctly.
+export const REQUIRED_FIRST = ['reg19'];
+
+export function gateComplete() {
+  return state.profileComplete
+    && REQUIRED_FIRST.every(id => statusOf(id) === 'completed');
+}
+
 export function formatDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
