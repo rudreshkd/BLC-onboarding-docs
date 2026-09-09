@@ -49,7 +49,7 @@ function modalHTML() {
     <h2 class="brand">Set Up New Candidate</h2>
     ${rows}
     <p id="inv-error" class="error-msg" role="alert" hidden></p>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+    <div class="modal-actions">
       <button class="btn btn-secondary" data-act="cancel">Cancel</button>
       <button class="btn btn-primary" data-act="submit">Send invite</button>
     </div>
@@ -76,7 +76,7 @@ function renderLinkReady(name, link) {
     <p class="muted" style="font-size:13px">
       <a id="inv-link-open" href="#" target="_blank" rel="noopener">Open link to test</a>
     </p>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+    <div class="modal-actions">
       <button class="btn btn-secondary" data-act="done">Done</button>
       <button class="btn btn-primary" data-act="copy">Copy link</button>
     </div>
