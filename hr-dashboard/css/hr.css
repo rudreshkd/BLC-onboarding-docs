@@ -130,17 +130,9 @@ body {
 .modal {
   position: fixed; inset: 0; display: grid; place-items: center;
   background: rgba(0,0,0,.35); z-index: 20;
-  padding: 24px 16px; /* keep the card clear of the viewport edge on short screens */
 }
 .modal[hidden] { display: none; }
-.modal-card {
-  background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 440px;
-  /* Long forms (Set up candidate) can exceed a small viewport's height —
-     scroll the card itself rather than letting the footer/send button run
-     off-screen with no way to reach it. */
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
-}
+.modal-card { background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 440px; }
 
 .toast {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
