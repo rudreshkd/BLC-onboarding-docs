@@ -71,18 +71,27 @@
         <button type="button" class="btn btn-start" id="btn-edit-profile">Start</button>
       </div>
 
-      <h2 class="step-heading">Step 1 — Complete these first</h2>
-      <ul class="form-list" id="dash-step1-list"></ul>
+      <nav class="part-stepper" aria-label="Onboarding parts">
+        <button type="button" class="stepper-item" id="stepper-part1">
+          <span class="stepper-num" aria-hidden="true">1</span>
+          <span class="stepper-label">Details &amp; history</span>
+        </button>
+        <span class="stepper-line" aria-hidden="true"></span>
+        <button type="button" class="stepper-item" id="stepper-part2" disabled>
+          <span class="stepper-num" aria-hidden="true">2</span>
+          <span class="stepper-label">Remaining forms</span>
+        </button>
+      </nav>
 
-      <h2 class="step-heading">Step 2 — Remaining forms
-        <span class="step-hint" id="step2-hint">Unlocks after Step 1</span>
-      </h2>
-      <div class="outstanding-list" id="gate-hint" style="display:none"></div>
-      <ul class="form-list" id="dash-step2-list"></ul>
+      <h2 class="step-heading" id="part-heading"></h2>
+      <ul class="form-list" id="dash-step1-list"></ul>
+      <ul class="form-list" id="dash-step2-list" style="display:none"></ul>
 
       <div class="submit-pack-area" id="submit-pack-area">
-        <button type="button" class="btn" id="btn-submit-pack" disabled>Submit pack to HR</button>
-        <div class="outstanding-list" id="outstanding-list" style="display:none"></div>
+        <div id="submit-wrap">
+          <button type="button" class="btn" id="btn-submit-pack" disabled>Submit pack to HR</button>
+          <div class="outstanding-list" id="outstanding-list" style="display:none"></div>
+        </div>
         <p><button type="button" class="btn-link" id="link-downloads">Download your forms</button></p>
       </div>
     </section>

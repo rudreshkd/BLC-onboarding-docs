@@ -153,7 +153,52 @@ h1, h2, h3, h4, label, .btn { font-family: var(--font-head); }
 
 .form-list { list-style: none; margin: 0; padding: 0; }
 
-/* ---------- Two-step dashboard ---------- */
+/* ---------- Two-part dashboard ---------- */
+.part-stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 4px;
+}
+.stepper-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px 6px 6px;
+  border-radius: 999px;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--muted);
+}
+.stepper-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+.stepper-item.active { color: var(--green-md); }
+.stepper-item.active .stepper-num { background: var(--green); color: #fff; }
+.stepper-item.done .stepper-num { background: var(--success); color: #fff; }
+.stepper-item:disabled { cursor: not-allowed; opacity: .55; }
+.stepper-item:not(:disabled):hover { background: var(--green-lt); }
+.stepper-item:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.stepper-line {
+  flex: 0 0 36px;
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+}
+
 .step-heading {
   display: flex;
   align-items: baseline;
@@ -161,7 +206,7 @@ h1, h2, h3, h4, label, .btn { font-family: var(--font-head); }
   flex-wrap: wrap;
   font-size: 15px;
   color: var(--green-md);
-  margin: 20px 0 10px;
+  margin: 16px 0 10px;
 }
 .step-heading .step-hint {
   font-family: var(--font-body);
@@ -169,13 +214,6 @@ h1, h2, h3, h4, label, .btn { font-family: var(--font-head); }
   font-size: 13px;
   color: var(--muted);
 }
-
-/* Locked rows: visible so the candidate sees the full journey, but clearly
-   inert. Opacity transition makes the unlock moment read as progress. */
-.form-row { transition: opacity .35s; }
-.form-row-locked { opacity: .55; }
-.form-row-locked:hover { border-color: var(--border); background: #fff; }
-.form-row-locked .name { color: var(--muted); }
 .form-row {
   display: flex;
   align-items: center;
