@@ -128,11 +128,41 @@ body {
 .none { background: #eee; color: var(--muted); }
 
 .modal {
-  position: fixed; inset: 0; display: grid; place-items: center;
+  position: fixed; inset: 0;
   background: rgba(0,0,0,.35); z-index: 20;
+  padding: 24px 16px; /* keep the card clear of the viewport edge on short screens */
+  /* flex + margin:auto centres the card without the centred-grid trap, where an
+     over-tall item overflows past both edges and can't be scrolled back to.
+     overflow on the overlay is a backstop for very short windows. */
+  display: flex;
+  overflow-y: auto;
 }
 .modal[hidden] { display: none; }
-.modal-card { background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 440px; }
+.modal-card {
+  background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 440px;
+  margin: auto;
+  /* Long forms (Set up candidate) can exceed a small window's height — scroll
+     the card itself rather than letting the footer run off-screen. dvh tracks
+     mobile browser chrome; the vh line above it is the fallback. */
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+/* Cancel / Send invite stay pinned to the bottom of the card, so the primary
+   action is visible without scrolling no matter how short the window is. */
+.modal-actions {
+  display: flex; gap: 8px; justify-content: flex-end;
+  position: sticky;
+  bottom: -24px; /* cancel the card's own bottom padding */
+  margin: 12px -24px -24px;
+  padding: 12px 24px 24px;
+  background: #fff;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 14px 14px;
+}
 
 .toast {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
