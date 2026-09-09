@@ -1,6 +1,7 @@
 // forms.js — form rendering (FORM_BODIES), openForm, collectFormData (TASK 1.2)
 
-import { state, FORMS, escH, fullName, fullAddr, formatDate } from './state.js';
+import { state, FORMS, escH, fullName, fullAddr, formatDate, statusOf, REQUIRED_FIRST, gateComplete } from './state.js';
+import { showToast } from './toast.js';
 import {
   empEntryBlock, gapEntryBlock, eduEntryBlock, cpdEntryBlock,
   refereeBlock, contactBlock, doseBlock, addEntry, removeEntry,
@@ -576,6 +577,14 @@ function populateForm(root, data) {
 export function openForm(id) {
   const form = FORMS.find(f => f.id === id);
   if (!form) return;
+
+  // Gate: only Step 1 forms (and anything already completed, read-only) open
+  // before personal details + Regulation 19 are done. The dashboard hides the
+  // path; this guards any other route in.
+  if (!gateComplete() && !REQUIRED_FIRST.includes(id) && statusOf(id) !== 'completed') {
+    showToast('Please complete your personal details and Employment History (Regulation 19) first');
+    return;
+  }
 
   const sub = state.submissions[id];
   const locked = sub?.status === 'completed';
