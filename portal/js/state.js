@@ -7,6 +7,9 @@
 export const API_BASE = (typeof window !== 'undefined' && window.BL_API_BASE) || 'http://localhost:3000';
 
 export const FORMS = [
+  { id: 'reg19',           name: 'Employment History (Regulation 19)',  category: 'Contract & Checks' },
+  { id: 'rightToWork',     name: 'Right to Work',                       category: 'Contract & Checks' },
+  { id: 'dbs',             name: 'DBS Declaration',                     category: 'Contract & Checks' },
   { id: 'application',     name: 'Application Form',                    category: 'Personal Details' },
   { id: 'staffDetails',    name: 'Staff Details & Emergency Contacts',  category: 'Personal Details' },
   { id: 'staffProfile',    name: 'Staff Profile',                       category: 'Personal Details' },
@@ -21,7 +24,6 @@ export const FORMS = [
   { id: 'wtd',             name: 'Working Time Opt-Out',                category: 'Consents & Declarations' },
   { id: 'offer',           name: 'Offer Letter & Contract',             category: 'Contract & Checks' },
   { id: 'supervision',     name: 'Supervision Contract',                category: 'Contract & Checks' },
-  { id: 'reg19',           name: 'Employment History (Regulation 19)',  category: 'Contract & Checks' },
 ];
 
 export const FILE_NAMES = {
@@ -40,6 +42,8 @@ export const FILE_NAMES = {
   offer:           'Offer_Letter_Contract.html',
   supervision:     'Supervision_Contract.html',
   reg19:           'Employment_History_Regulation_19.html',
+  rightToWork:     'Right_to_Work.html',
+  dbs:             'DBS_Declaration.html',
 };
 
 export const CATEGORIES = [
@@ -72,6 +76,9 @@ export const state = {
   // submissions[id] = { status: 'in_progress'|'completed', data: {}, signedName, signedAt }
   submissions: {},
   packSubmitted: false,
+  // Set once the 4 gating forms' answers have been PUT to /invites/:id/early-details
+  // so HR can see them before the rest of the pack is done — see earlyDetails.js.
+  earlyDetailsSent: false,
 };
 
 export function fullName() {

@@ -52,6 +52,9 @@ export default async function packRoutes(fastify) {
       const { plaintext: dataKey, wrapped: wrappedDataKey } = await kms.generateDataKey();
       const { iv, ciphertext } = aesGcmEncrypt(req.body, dataKey);
       await getStorage().put(id, { iv, ciphertext, wrappedDataKey });
+      // The full pack now supersedes the early-details snapshot (if any) —
+      // purge it so the same PII isn't held at rest under two keys.
+      await getStorage().delete(`${id}-early`);
 
       await query(
         `UPDATE invites SET status = 'submitted', updated_at = NOW()

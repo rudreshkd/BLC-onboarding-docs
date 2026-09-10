@@ -15,6 +15,9 @@ let pollTimer = null;
 let inFlight = false;
 let invites = [];
 let wired = false;
+// Current status-filter bucket for the matrix table — 'all' shows everything.
+// The metrics band above always reflects every candidate regardless of this.
+let statusFilter = 'all';
 // Row menu (kebab): id of the invite the shared #row-menu dropdown currently
 // targets, and the button that opened it (for aria-expanded + repositioning).
 let menuOpenId = null;
@@ -34,6 +37,28 @@ export function statusLabel(status) {
     invited: 'Invited', in_progress: 'In progress',
     submitted: 'To Review', received: 'Completed',
   }[status] || status;
+}
+
+// The 4 filter buckets shown above the matrix. 'invited' has no metric card
+// or filter of its own (matches the existing metrics band), so it's grouped
+// under "In progress" — a candidate who's only been sent a link but hasn't
+// submitted or been reviewed yet isn't "Awaiting review" or "Completed" either.
+const FILTERS = [
+  { id: 'all', label: 'All', match: () => true },
+  { id: 'in_progress', label: 'In progress', match: (i) => i.status === 'invited' || i.status === 'in_progress' },
+  { id: 'submitted', label: 'Awaiting review', match: (i) => i.status === 'submitted' },
+  { id: 'received', label: 'Completed', match: (i) => i.status === 'received' },
+];
+
+export function filterInvites(list, filterId) {
+  const filter = FILTERS.find((f) => f.id === filterId) || FILTERS[0];
+  return list.filter(filter.match);
+}
+
+function renderStatusFilter() {
+  document.getElementById('status-filter').innerHTML = FILTERS.map((f) =>
+    `<button type="button" class="filter-pill" data-filter="${f.id}" aria-pressed="${f.id === statusFilter}">${f.label}</button>`
+  ).join('');
 }
 
 // Which action buttons a row shows, by status (pure — unit tested).
@@ -105,18 +130,30 @@ function renderMetrics(m) {
     .join('');
 }
 
-function renderMatrix(list) {
+function renderMatrix(list, totalCount) {
   closeMenu(); // a re-render replaces the row DOM — don't leave the menu pointing at a detached button
   const body = document.getElementById('matrix-body');
   const empty = document.getElementById('matrix-empty');
-  if (!list.length) { body.innerHTML = ''; if (empty) empty.hidden = false; return; }
+  if (!list.length) {
+    body.innerHTML = '';
+    if (empty) {
+      empty.hidden = false;
+      // No candidates at all vs. none matching the current filter get different messages.
+      empty.innerHTML = totalCount === 0
+        ? '<p>No candidates yet. Invite your first candidate to start onboarding.</p>'
+          + '<button class="btn btn-primary" data-nav="invite">+ Invite candidate</button>'
+        : '<p>No candidates match this filter.</p>';
+    }
+    return;
+  }
   if (empty) empty.hidden = true;
   body.innerHTML = list.map(rowHTML).join('');
 }
 
 export function render(list) {
   renderMetrics(computeMetrics(list));
-  renderMatrix(list);
+  renderStatusFilter();
+  renderMatrix(filterInvites(list, statusFilter), list.length);
 }
 
 // Shimmer placeholder rows shown on the very first load (before data arrives).
@@ -236,6 +273,12 @@ function wireOnce() {
   if (wired) return;
   document.getElementById('matrix-body').addEventListener('click', onMatrixClick);
   document.getElementById('row-menu').addEventListener('click', onRowMenuClick);
+  document.getElementById('status-filter').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-filter]');
+    if (!btn) return;
+    statusFilter = btn.dataset.filter;
+    render(invites); // re-render from the already-fetched list — no refetch needed
+  });
   // Close the row menu on an outside click, Escape, or the page moving under it.
   document.addEventListener('click', (e) => {
     if (!menuOpenId) return;

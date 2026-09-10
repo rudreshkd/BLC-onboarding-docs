@@ -39,34 +39,74 @@
   <!-- ============ DASHBOARD VIEW ============ -->
   <section id="view-dashboard" hidden>
     <header class="topbar">
-      <span class="topbar-brand">Brighter Living · HR Dashboard</span>
+      <span class="topbar-brand">
+        <img src="img/logo-icon.png" alt="" class="topbar-logo">
+        Brighter Living · HR Dashboard
+      </span>
       <div class="topbar-actions">
         <button id="btn-invite" class="btn btn-ghost">+ Set up candidate</button>
         <button id="btn-signout" class="btn btn-ghost">Sign out</button>
       </div>
     </header>
 
-    <main id="main-content" class="wrap">
-      <!-- Metrics band (populated by dashboard.js) -->
-      <div id="metrics" class="metrics" aria-live="polite"></div>
+    <div class="dashboard-layout">
+      <div id="sidebar-col" class="sidebar-col">
+        <!-- Logo sits above the sidebar card -->
+        <div class="sidebar-logo">
+          <img src="img/logo-icon.png" alt="Brighter Living" class="sidebar-logo-mark">
+          <span class="sidebar-logo-text">Brighter Living</span>
+        </div>
 
-      <!-- Candidate tracking matrix -->
-      <div class="matrix-scroll">
-        <table class="matrix" aria-label="Candidate onboarding tracking">
-          <thead>
-            <tr>
-              <th scope="col">Candidate</th><th scope="col">Role</th><th scope="col">Link sent</th><th scope="col">Submitted</th>
-              <th scope="col">Progress</th><th scope="col">Status</th><th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="matrix-body"><!-- rows injected by dashboard.js --></tbody>
-        </table>
+        <!-- Recruitment pipeline reference — static legend, not tied to candidate
+             data: stages 1/2/7/8 happen entirely outside this system, so this is
+             informational context for HR rather than a live tracker. -->
+        <aside id="stage-legend" class="stage-legend" aria-label="Recruitment pipeline stages">
+          <button type="button" id="stage-legend-toggle" class="stage-legend-toggle" aria-expanded="false" aria-controls="stage-list">
+            <span class="stage-icon stage-icon-menu" aria-hidden="true">☰</span>
+            <span class="stage-legend-title">Recruitment pipeline</span>
+          </button>
+          <ul id="stage-list">
+            <li class="stage-item"><span class="stage-icon" style="background:#64748b" aria-hidden="true">📄</span><span class="stage-name">CV receipt &amp; screening</span></li>
+            <li class="stage-item"><span class="stage-icon" style="background:#0ea5e9" aria-hidden="true">🎤</span><span class="stage-name">Interview</span></li>
+            <li class="stage-item"><span class="stage-icon" style="background:#f59e0b" aria-hidden="true">📨</span><span class="stage-name">Offer &amp; forms sent</span></li>
+            <li class="stage-item"><span class="stage-icon" style="background:#8b5cf6" aria-hidden="true">📋</span><span class="stage-name">Document collection</span></li>
+            <li class="stage-item"><span class="stage-icon" style="background:#ef4444" aria-hidden="true">🛡️</span><span class="stage-name">Compliance checks</span></li>
+            <li class="stage-item"><span class="stage-icon" style="background:#ec4899" aria-hidden="true">✍️</span><span class="stage-name">Induction sign-off</span></li>
+            <li class="stage-item"><span class="stage-icon" style="background:#22c55e" aria-hidden="true">🎓</span><span class="stage-name">Induction</span></li>
+            <li class="stage-item"><span class="stage-icon" style="background:#0f172a" aria-hidden="true">🗂️</span><span class="stage-name">Post-induction admin</span></li>
+          </ul>
+          <button type="button" id="theme-toggle" class="stage-item stage-item-btn theme-toggle" aria-pressed="false">
+            <span class="stage-icon stage-icon-theme" id="theme-toggle-icon" aria-hidden="true">🌙</span>
+            <span class="stage-name" id="theme-toggle-label">Dark mode</span>
+          </button>
+        </aside>
       </div>
-      <div id="matrix-empty" class="empty-state" hidden>
-        <p>No candidates yet. Invite your first candidate to start onboarding.</p>
-        <button class="btn btn-primary" data-nav="invite">+ Invite candidate</button>
-      </div>
-    </main>
+
+      <main id="main-content" class="wrap">
+        <!-- Metrics band (populated by dashboard.js) -->
+        <div id="metrics" class="metrics" aria-live="polite"></div>
+
+        <!-- Status filter (populated by dashboard.js) -->
+        <div id="status-filter" class="status-filter" role="group" aria-label="Filter candidates by status"></div>
+
+        <!-- Candidate tracking matrix -->
+        <div class="matrix-scroll">
+          <table class="matrix" aria-label="Candidate onboarding tracking">
+            <thead>
+              <tr>
+                <th scope="col">Candidate</th><th scope="col">Role</th><th scope="col">Link sent</th><th scope="col">Submitted</th>
+                <th scope="col">Progress</th><th scope="col">Status</th><th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-body"><!-- rows injected by dashboard.js --></tbody>
+          </table>
+        </div>
+        <div id="matrix-empty" class="empty-state" hidden>
+          <p>No candidates yet. Invite your first candidate to start onboarding.</p>
+          <button class="btn btn-primary" data-nav="invite">+ Invite candidate</button>
+        </div>
+      </main>
+    </div>
   </section>
 
   <!-- ============ RECORD INSPECTOR (slide-in) ============ -->

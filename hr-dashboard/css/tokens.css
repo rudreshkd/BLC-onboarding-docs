@@ -21,10 +21,24 @@
   --border:   #DCD5ED;  /* Field borders */
   --text:     #111827;  /* Body text */
   --muted:    #5C4E72;  /* Labels */
+  --surface:  #fff;     /* Card/panel backgrounds (matrix, modals, sidebar, inspector...) */
 
   --stripe: linear-gradient(90deg, #71DBD4 0%, #563D82 55%, #71DBD4 100%);
 
   --font-head: 'Poppins', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-sig:  'Brush Script MT', 'Segoe Script', cursive;
+}
+
+/* Dark mode — toggled via the sidebar's theme toggle (js/theme.js), which sets
+   data-theme on <html> and persists the choice. Brand/status colours (badges,
+   buttons, the coloured stage/accent chips) are deliberately left as-is —
+   they already read fine as light accent chips against a dark card — only the
+   structural surface/text/border tokens change. */
+:root[data-theme="dark"] {
+  --bg:      #17121f;
+  --surface: #241b33;
+  --text:    #EEE8FA;
+  --muted:   #b7a9d6;
+  --border:  #40325c;
 }

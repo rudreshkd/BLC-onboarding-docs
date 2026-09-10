@@ -9,23 +9,28 @@ import { refresh } from './dashboard.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const OTHER_ROLE = 'Other';
+
 const ROLE_OPTIONS = [
   'Support Worker',
-  'Senior Support Worker',
   'Team Leader',
-  'Care Coordinator',
   'Registered Manager',
   'Service Manager',
-  'Administrator',
+  'Area Manager',
+  OTHER_ROLE,
 ];
 
 const FIELDS = [
-  { id: 'firstName', label: 'First name',     type: 'text',  value: '',                    required: true },
-  { id: 'surname',   label: 'Surname',        type: 'text',  value: '',                    required: true },
+  { id: 'firstName',  label: 'First name',      type: 'text',  value: '',                    required: true },
+  { id: 'middleName', label: 'Middle name',     type: 'text',  value: '' },
+  { id: 'surname',    label: 'Surname',         type: 'text',  value: '',                    required: true },
   { id: 'email',   label: 'Candidate email', type: 'email', value: '',                    required: true },
+  { id: 'phone',   label: 'Phone number',   type: 'tel',   value: '' },
   { id: 'role',    label: 'Role / job title', type: 'select', value: 'Support Worker', options: ROLE_OPTIONS, required: true },
-  { id: 'startDate', label: 'Start date',     type: 'date', value: '', required: true },
-  { id: 'salary',  label: 'Annual salary',    type: 'text', value: '£26,000' },
+  // Only shown when Role is set to "Other" — free text for rarer roles (e.g. PBS, Quality).
+  { id: 'otherRole', label: 'Specify role', type: 'text', value: '', hidden: true },
+  { id: 'startDate', label: 'Interview date', type: 'date', value: '', required: true },
+  { id: 'salary',  label: 'Hourly rate',    type: 'text', value: '£12.50 per hour' },
   { id: 'hours',   label: 'Contracted hours', type: 'text', value: '35 hours per week' },
   { id: 'manager', label: 'Line manager',     type: 'text', value: '' },
 ];
@@ -41,7 +46,7 @@ function fieldHTML(f) {
 
 function modalHTML() {
   const rows = FIELDS.map((f) => `
-    <label class="field">
+    <label class="field" id="inv-field-${f.id}"${f.hidden ? ' hidden' : ''}>
       <span>${f.label}${f.required ? ' *' : ''}</span>
       ${fieldHTML(f)}
     </label>`).join('');
@@ -108,10 +113,12 @@ async function copyLink() {
 export function collectInvite() {
   const val = (id) => document.getElementById(`inv-${id}`).value.trim();
   const firstName = val('firstName');
+  const middleName = val('middleName');
   const surname = val('surname');
-  const name = `${firstName} ${surname}`.trim();
+  const name = [firstName, middleName, surname].filter(Boolean).join(' ');
   const email = val('email');
-  const role = val('role');
+  const roleChoice = val('role');
+  const role = roleChoice === OTHER_ROLE ? val('otherRole') : roleChoice;
   const errEl = document.getElementById('inv-error');
   if (!firstName || !surname) {
     errEl.textContent = 'First name and surname are required';
@@ -124,7 +131,7 @@ export function collectInvite() {
     return null;
   }
   if (!role) {
-    errEl.textContent = 'Role is required';
+    errEl.textContent = roleChoice === OTHER_ROLE ? 'Enter the candidate\'s role' : 'Role is required';
     errEl.hidden = false;
     return null;
   }
@@ -132,7 +139,7 @@ export function collectInvite() {
     name, email, role,
     offerTerms: {
       startDate: val('startDate'), salary: val('salary'),
-      hours: val('hours'), manager: val('manager'),
+      hours: val('hours'), manager: val('manager'), phone: val('phone'),
     },
   };
 }
@@ -153,10 +160,17 @@ async function submit() {
   }
 }
 
+function toggleOtherRole() {
+  const isOther = document.getElementById('inv-role').value === OTHER_ROLE;
+  document.getElementById('inv-field-otherRole').hidden = !isOther;
+  if (!isOther) document.getElementById('inv-otherRole').value = '';
+}
+
 export function openInviteModal() {
   const m = document.getElementById('invite-modal');
   m.innerHTML = modalHTML();
   m.hidden = false;
+  document.getElementById('inv-role').onchange = toggleOtherRole;
   m.onclick = (e) => {
     const act = e.target.closest('button')?.dataset.act;
     if (act === 'cancel' || act === 'done' || e.target === m) close();

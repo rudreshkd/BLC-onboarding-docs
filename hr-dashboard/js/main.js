@@ -5,6 +5,7 @@ import { setUnauthorizedHandler } from './api.js';
 import { showToast } from './toast.js';
 import { startDashboard, stopDashboard } from './dashboard.js';
 import { openInviteModal } from './invite.js';
+import { initTheme } from './theme.js';
 
 const loginView = document.getElementById('view-login');
 const dashboardView = document.getElementById('view-dashboard');
@@ -48,6 +49,16 @@ document.getElementById('btn-signout').addEventListener('click', () => {
 });
 
 document.getElementById('btn-invite').addEventListener('click', () => openInviteModal());
+
+// Sidebar: collapsed to icons only by default, toggle expands it to also
+// show text labels (stage names, "Dark mode"/"Light mode").
+document.getElementById('stage-legend-toggle').addEventListener('click', () => {
+  const expanded = document.getElementById('sidebar-col').classList.toggle('expanded');
+  document.getElementById('stage-legend-toggle').setAttribute('aria-expanded', String(expanded));
+});
+
+initTheme();
+
 // Empty-state CTA (re-rendered, so delegate).
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-nav="invite"]')) openInviteModal();

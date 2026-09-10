@@ -40,6 +40,12 @@ const LABELS = {
   schoolLeavingDate: 'Left full-time education',
   employmentHistory: 'Employment history', gaps: 'Gaps in employment', education: 'Education',
   cpd: 'Training & CPD', referees: 'Referees', emergencyContacts: 'Emergency contacts', doses: 'Vaccination doses',
+  rtwEligible: 'Right to work in the UK', hasShareCode: 'Has a share code',
+  shareCode: 'Share code', shareCodeDob: 'Date of birth (for share code check)',
+  rtwSignedName: 'Right to work declaration signed by', rtwSignedDate: 'Right to work declaration date',
+  hasDbs: 'Has a DBS', dbsUpdateService: 'On the Update Service',
+  dbsCertNumber: 'DBS certificate number', dbsDateIssue: 'DBS date of issue',
+  dbsWorkforce: 'DBS workforce', dbsDeclaration: 'DBS declaration agreed',
 };
 
 const ROW_LABELS = {

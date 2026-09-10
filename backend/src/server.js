@@ -12,6 +12,7 @@ import authRoutes from './routes/auth.js';
 import hrRoutes from './routes/hr.js';
 import inviteRoutes from './routes/invites.js';
 import packRoutes from './routes/packs.js';
+import earlyDetailsRoutes from './routes/early-details.js';
 
 export function buildServer(opts = {}) {
   const fastify = Fastify({ logger: opts.logger ?? false });
@@ -31,6 +32,7 @@ export function buildServer(opts = {}) {
   fastify.register(hrRoutes);
   fastify.register(inviteRoutes);
   fastify.register(packRoutes);
+  fastify.register(earlyDetailsRoutes);
 
   return fastify;
 }

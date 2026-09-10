@@ -10,7 +10,7 @@ test('openInviteModal renders the field set with defaults', () => {
   openInviteModal();
   assert.equal(document.getElementById('invite-modal').hidden, false);
   assert.equal(document.getElementById('inv-role').value, 'Support Worker');
-  assert.equal(document.getElementById('inv-salary').value, '£26,000');
+  assert.equal(document.getElementById('inv-salary').value, '£12.50 per hour');
 });
 
 test('collectInvite rejects a missing name and shows an inline error', () => {
@@ -40,5 +40,5 @@ test('collectInvite returns the POST body for a valid invite', () => {
   assert.equal(body.name, 'Sarah Okonkwo');
   assert.equal(body.email, 'candidate@example.com');
   assert.equal(body.role, 'Support Worker');
-  assert.equal(body.offerTerms.salary, '£26,000');
+  assert.equal(body.offerTerms.salary, '£12.50 per hour');
 });
