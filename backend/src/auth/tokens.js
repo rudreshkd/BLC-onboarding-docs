@@ -17,15 +17,17 @@ export function hashToken(raw) {
   return createHash('sha256').update(raw).digest('hex');
 }
 
-// Issues a fresh 7-day single-use token for an invite. Returns the raw token
-// and the full magic-link URL (the Notification Service emails the link).
-export async function issueMagicLinkToken(inviteId) {
+// Issues a fresh single-use token for an invite, valid for `expiryDays` days
+// (7 by default — the original invite link; a resend uses a longer window).
+// Returns the raw token and the full magic-link URL (the Notification Service
+// emails the link).
+export async function issueMagicLinkToken(inviteId, expiryDays = 7) {
   const raw = randomBytes(32).toString('hex');
   const tokenHash = hashToken(raw);
   await query(
     `INSERT INTO magic_link_tokens (invite_id, token_hash, expires_at)
-     VALUES ($1, $2, NOW() + INTERVAL '7 days')`,
-    [inviteId, tokenHash],
+     VALUES ($1, $2, NOW() + ($3::text || ' days')::interval)`,
+    [inviteId, tokenHash, String(expiryDays)],
   );
   const link = `${config.portalBaseUrl}/?token=${raw}`;
   return { raw, link };

@@ -94,7 +94,7 @@
           <table class="matrix" aria-label="Candidate onboarding tracking">
             <thead>
               <tr>
-                <th scope="col">Candidate</th><th scope="col">Role</th><th scope="col">Link sent</th><th scope="col">Submitted</th>
+                <th scope="col">Candidate</th><th scope="col">Role</th><th scope="col">Interview date</th><th scope="col">Link sent</th><th scope="col">Submitted</th>
                 <th scope="col">Progress</th><th scope="col">Status</th><th scope="col">Actions</th>
               </tr>
             </thead>
@@ -119,11 +119,10 @@
   <!-- ============ ROW MENU (kebab) ============ -->
   <!-- One shared dropdown, positioned in JS next to whichever row's "⋮" was
        clicked — kept outside the table so the matrix's own overflow rules
-       never clip it. -->
-  <div id="row-menu" class="row-menu-dropdown" hidden role="menu">
-    <button type="button" class="row-menu-item" data-menu-act="edit" role="menuitem">Edit</button>
-    <button type="button" class="row-menu-item row-menu-item-danger" data-menu-act="delete" role="menuitem">Delete</button>
-  </div>
+       never clip it. Contents (Edit + whatever actionsFor() offers: View
+       record / Resend link / Confirm Receipt / Delete) are rendered per-row
+       by dashboard.js's openMenu(), since they vary by candidate status. -->
+  <div id="row-menu" class="row-menu-dropdown" hidden role="menu"></div>
 
   <script type="module" src="js/main.js"></script>
 </body>

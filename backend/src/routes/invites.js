@@ -3,10 +3,15 @@
 //   POST   /invites               (HR)        create invite + issue magic link ─► 201 { inviteId, link }
 //   GET    /invites               (HR)        list with computed formsComplete
 //   DELETE /invites/:id           (HR)        permanently remove an invite
+//   POST   /invites/:id/remind    (HR)        resend the magic link ─► { link } (14-day expiry)
 //   PATCH  /invites/:id/progress  (candidate) merge one form's status
 //
 // form_progress invariant: values are status strings from a fixed enum only —
 // never form-answer PII. PATCH validates formId + status before merging.
+
+// A resend implies the candidate has been slow to respond — give them longer
+// than the original 7-day invite link.
+const REMIND_EXPIRY_DAYS = 14;
 
 import { query } from '../db.js';
 import { requireAuth } from '../auth/guard.js';
@@ -84,6 +89,26 @@ export default async function inviteRoutes(fastify) {
     await writeAudit(id, 'invite_deleted', `hr:${req.user.sub}`);
     await query('DELETE FROM invites WHERE id = $1', [id]);
     return reply.code(204).send();
+  });
+
+  // --- POST /invites/:id/remind (HR) -------------------------------------------
+  // Resends the magic link with a longer (14-day) expiry — for a candidate who
+  // hasn't finished (or started) their pack yet. Unlike /auth/invite-link this
+  // isn't restricted to status='invited', so it also covers 'in_progress'.
+  fastify.post('/invites/:id/remind', { preHandler: requireAuth('hr') }, async (req, reply) => {
+    const { id } = req.params;
+    const { rows } = await query('SELECT id, status FROM invites WHERE id = $1', [id]);
+    const invite = rows[0];
+    if (!invite) return reply.code(404).send({ error: 'Invite not found' });
+    if (invite.status !== 'invited' && invite.status !== 'in_progress') {
+      return reply.code(409).send({ error: `Invite status is '${invite.status}' — nothing to resend` });
+    }
+
+    const { link } = await issueMagicLinkToken(id, REMIND_EXPIRY_DAYS);
+    await query('UPDATE invites SET link_sent_at = NOW() WHERE id = $1', [id]);
+    await writeAudit(id, 'link_resent', `hr:${req.user.sub}`);
+    notifyMagicLink(id, link); // fire-and-forget stub (Phase 5)
+    return reply.send({ link });
   });
 
   // --- PATCH /invites/:id/progress (candidate) --------------------------------

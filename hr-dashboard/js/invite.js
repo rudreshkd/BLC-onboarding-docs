@@ -20,17 +20,22 @@ const ROLE_OPTIONS = [
   OTHER_ROLE,
 ];
 
+const PAY_TYPE_OPTIONS = ['Hourly rate', 'Salary rate'];
+const PAY_DEFAULTS = { 'Hourly rate': '£12.50 per hour', 'Salary rate': '£26,000 per year' };
+
 const FIELDS = [
   { id: 'firstName',  label: 'First name',      type: 'text',  value: '',                    required: true },
   { id: 'middleName', label: 'Middle name',     type: 'text',  value: '' },
   { id: 'surname',    label: 'Surname',         type: 'text',  value: '',                    required: true },
   { id: 'email',   label: 'Candidate email', type: 'email', value: '',                    required: true },
-  { id: 'phone',   label: 'Phone number',   type: 'tel',   value: '' },
+  { id: 'phone',   label: 'Phone number',   type: 'tel',   value: '',                    required: true },
   { id: 'role',    label: 'Role / job title', type: 'select', value: 'Support Worker', options: ROLE_OPTIONS, required: true },
   // Only shown when Role is set to "Other" — free text for rarer roles (e.g. PBS, Quality).
   { id: 'otherRole', label: 'Specify role', type: 'text', value: '', hidden: true },
   { id: 'startDate', label: 'Interview date', type: 'date', value: '', required: true },
-  { id: 'salary',  label: 'Hourly rate',    type: 'text', value: '£12.50 per hour' },
+  // Pay type picks which rate HR is quoting; the field below adapts its label/value to it.
+  { id: 'payType', label: 'Pay type', type: 'select', value: 'Hourly rate', options: PAY_TYPE_OPTIONS },
+  { id: 'salary',  label: 'Hourly rate',    type: 'text', value: PAY_DEFAULTS['Hourly rate'] },
   { id: 'hours',   label: 'Contracted hours', type: 'text', value: '35 hours per week' },
   { id: 'manager', label: 'Line manager',     type: 'text', value: '' },
 ];
@@ -69,11 +74,12 @@ function close() {
 
 // Success state: show the candidate's magic link with a copy button so HR can
 // paste it into an email. The link is also clickable to test the flow directly.
-function renderLinkReady(name, link) {
+// Shared by a fresh invite and a resend (`title`/`intro` differ between the two).
+function renderLinkReady(name, link, { title = 'Invite created', intro } = {}) {
   const m = document.getElementById('invite-modal');
   m.innerHTML = `<div class="modal-card">
-    <h2 class="brand">Invite created</h2>
-    <p class="muted">Send ${escAttr(name)} their personal onboarding link. They click it to go straight to their forms — no sign-in needed.</p>
+    <h2 class="brand">${escAttr(title)}</h2>
+    <p class="muted">${intro || `Send ${escAttr(name)} their personal onboarding link. They click it to go straight to their forms — no sign-in needed.`}</p>
     <label class="field">
       <span>Candidate login link</span>
       <input id="inv-link" readonly />
@@ -117,6 +123,7 @@ export function collectInvite() {
   const surname = val('surname');
   const name = [firstName, middleName, surname].filter(Boolean).join(' ');
   const email = val('email');
+  const phone = val('phone');
   const roleChoice = val('role');
   const role = roleChoice === OTHER_ROLE ? val('otherRole') : roleChoice;
   const errEl = document.getElementById('inv-error');
@@ -130,6 +137,11 @@ export function collectInvite() {
     errEl.hidden = false;
     return null;
   }
+  if (!phone) {
+    errEl.textContent = 'Phone number is required';
+    errEl.hidden = false;
+    return null;
+  }
   if (!role) {
     errEl.textContent = roleChoice === OTHER_ROLE ? 'Enter the candidate\'s role' : 'Role is required';
     errEl.hidden = false;
@@ -139,7 +151,7 @@ export function collectInvite() {
     name, email, role,
     offerTerms: {
       startDate: val('startDate'), salary: val('salary'),
-      hours: val('hours'), manager: val('manager'), phone: val('phone'),
+      hours: val('hours'), manager: val('manager'), phone,
     },
   };
 }
@@ -166,15 +178,47 @@ function toggleOtherRole() {
   if (!isOther) document.getElementById('inv-otherRole').value = '';
 }
 
+// Relabels the salary field to match the chosen pay type. Only swaps in the
+// new default value if the field still holds the *other* type's default (or
+// is empty), so it never clobbers a rate HR has already typed in.
+function togglePayType() {
+  const payType = document.getElementById('inv-payType').value;
+  const otherType = payType === 'Hourly rate' ? 'Salary rate' : 'Hourly rate';
+  document.querySelector('#inv-field-salary span').textContent = payType;
+  const input = document.getElementById('inv-salary');
+  if (input.value === '' || input.value === PAY_DEFAULTS[otherType]) {
+    input.value = PAY_DEFAULTS[payType];
+  }
+}
+
 export function openInviteModal() {
   const m = document.getElementById('invite-modal');
   m.innerHTML = modalHTML();
   m.hidden = false;
   document.getElementById('inv-role').onchange = toggleOtherRole;
+  document.getElementById('inv-payType').onchange = togglePayType;
   m.onclick = (e) => {
     const act = e.target.closest('button')?.dataset.act;
     if (act === 'cancel' || act === 'done' || e.target === m) close();
     if (act === 'submit') submit();
+    if (act === 'copy') copyLink();
+  };
+}
+
+// Shown from the dashboard row's "Resend link" action — reuses the same
+// copyable-link view as a fresh invite (handles the clipboard-blocked case
+// via manual select/copy) instead of a toast, which can't show something this
+// long and disappears before HR can act on it.
+export function showResendLinkModal(name, link) {
+  const m = document.getElementById('invite-modal');
+  renderLinkReady(name, link, {
+    title: 'Link resent',
+    intro: `${escAttr(name)}'s new onboarding link is ready — valid for 14 days.`,
+  });
+  m.hidden = false;
+  m.onclick = (e) => {
+    const act = e.target.closest('button')?.dataset.act;
+    if (act === 'done' || e.target === m) close();
     if (act === 'copy') copyLink();
   };
 }

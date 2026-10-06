@@ -75,6 +75,18 @@ export function renderDashboard() {
     && GATE_FORM_IDS.every(id => statusOf(id) === 'completed');
   const visibleForms = gateComplete ? FORMS : FORMS.filter(f => GATE_FORM_IDS.includes(f.id));
 
+  document.getElementById('pack-stepper').innerHTML = `
+    <div class="pack-step${gateComplete ? '' : ' active'}">
+      <span class="pack-step-num">1</span><span class="pack-step-label">Details &amp; history</span>
+    </div>
+    <div class="pack-step-connector"></div>
+    <div class="pack-step${gateComplete ? ' active' : ''}">
+      <span class="pack-step-num">2</span><span class="pack-step-label">Remaining forms</span>
+    </div>`;
+  document.getElementById('part1-heading').innerHTML = gateComplete ? '' : `
+    <strong>Part 1 — Your details and employment history</strong>
+    <span>Complete the forms below to unlock the rest of your forms</span>`;
+
   // Let HR see these 4 forms' answers as soon as they're all done, without
   // waiting for the rest of the pack. Only latch "sent" on success — a failed
   // attempt (offline, etc.) just retries next time this function runs.
@@ -101,6 +113,9 @@ export function renderDashboard() {
   const complete = allComplete();
   submitBtn.disabled = !complete || state.packSubmitted;
   submitBtn.textContent = state.packSubmitted ? 'Pack sent to HR ✓' : 'Submit pack to HR';
+  // Nothing to submit yet while still on Part 1 — the button (and the
+  // outstanding-forms list it can reveal) only reappears once Part 2 unlocks.
+  submitBtn.hidden = !gateComplete;
   document.getElementById('outstanding-list').style.display = 'none';
 }
 
@@ -155,9 +170,10 @@ export async function submitPack() {
 export function wireDashboard() {
   document.getElementById('btn-submit-pack').addEventListener('click', confirmSubmitPack);
   // The disabled submit button has pointer-events:none, so clicks on it land
-  // here and reveal the outstanding-forms list (requirements §4.3).
+  // here and reveal the outstanding-forms list (requirements §4.3). Only
+  // relevant once the button itself is showing (Part 2 — see renderDashboard).
   document.getElementById('submit-pack-area').addEventListener('click', () => {
-    if (!allComplete()) showOutstanding();
+    if (!document.getElementById('btn-submit-pack').hidden && !allComplete()) showOutstanding();
   });
   document.getElementById('btn-modal-yes').addEventListener('click', submitPack);
   document.getElementById('btn-modal-back').addEventListener('click', () =>
