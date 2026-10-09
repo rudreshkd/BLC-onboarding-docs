@@ -35,7 +35,7 @@ test('POST /invites creates an invite that appears in GET /invites', async () =>
   assert.equal(found.name, 'Sarah Smith');
   assert.equal(found.status, 'invited');
   assert.equal(found.formsComplete, 0);
-  assert.equal(found.formsTotal, 15);
+  assert.equal(found.formsTotal, 17);
   // Link is issued at creation: the row records when it was sent.
   assert.ok(found.linkSentAt, 'link_sent_at is set on creation');
 });
@@ -115,10 +115,10 @@ test('PATCH progress rejects an out-of-enum status', async () => {
   assert.equal(res.statusCode, 400);
 });
 
-test('PATCH all 15 forms flips status to submitted', async () => {
+test('PATCH all 17 forms flips status to submitted', async () => {
   const invite = await seedInvite({ status: 'in_progress' });
   const tok = candidateToken(invite.id);
-  const forms = ['application','staffDetails','staffProfile','bank','hmrc','health','hepb','covid','gdpr','confidentiality','criminal','wtd','offer','supervision','reg19'];
+  const forms = ['application','staffDetails','staffProfile','bank','hmrc','health','hepb','covid','gdpr','confidentiality','criminal','wtd','offer','supervision','reg19','rightToWork','dbs'];
   for (const f of forms) {
     await app.inject({ method: 'PATCH', url: `/invites/${invite.id}/progress`, headers: { authorization: `Bearer ${tok}` }, payload: { formId: f, status: 'completed' } });
   }

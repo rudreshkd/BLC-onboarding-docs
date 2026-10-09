@@ -33,10 +33,13 @@ const invite = {
   formProgress: { bank: 'completed', application: 'in_progress' },
 };
 
-test('record lists all 15 forms across the 5 category groups', () => {
+test('record lists all forms across the 5 category groups, plus the 3 candidate details sections', () => {
   const html = recordHTML(invite);
   for (const f of FORMS) assert.ok(html.includes(escH(f.name)), `missing form ${f.name}`);
-  assert.equal((html.match(/cat-group/g) || []).length, 5);
+  // The 5 CATEGORIES groups, plus 3 collapsible candidate-details sections
+  // (Candidate details / Regulation 19 / Right to Work & DBS — each shows a
+  // "not yet available" note here, since this invite has no cached early details).
+  assert.equal((html.match(/cat-group/g) || []).length, 8);
 });
 
 test('per-form status marks reflect formProgress', () => {

@@ -5,16 +5,20 @@
 //   so re-rendering after a download flips "Confirm Receipt" on with no state.
 
 import { request } from './api.js';
-import { escH, formatDate, displayName } from './util.js';
+import { escH, formatDate, formatDateOnly, displayName } from './util.js';
 import { showToast } from './toast.js';
 import { hasPack } from './download.js';
 import { openRecord } from './inspector.js';
+import { showResendLinkModal } from './invite.js';
 
 const POLL_MS = 30000;
 let pollTimer = null;
 let inFlight = false;
 let invites = [];
 let wired = false;
+// Current status-filter bucket for the matrix table — 'all' shows everything.
+// The metrics band above always reflects every candidate regardless of this.
+let statusFilter = 'all';
 // Row menu (kebab): id of the invite the shared #row-menu dropdown currently
 // targets, and the button that opened it (for aria-expanded + repositioning).
 let menuOpenId = null;
@@ -36,19 +40,43 @@ export function statusLabel(status) {
   }[status] || status;
 }
 
+// The 4 filter buckets shown above the matrix. 'invited' has no metric card
+// or filter of its own (matches the existing metrics band), so it's grouped
+// under "In progress" — a candidate who's only been sent a link but hasn't
+// submitted or been reviewed yet isn't "Awaiting review" or "Completed" either.
+const FILTERS = [
+  { id: 'all', label: 'All', match: () => true },
+  { id: 'in_progress', label: 'In progress', match: (i) => i.status === 'invited' || i.status === 'in_progress' },
+  { id: 'submitted', label: 'Awaiting review', match: (i) => i.status === 'submitted' },
+  { id: 'received', label: 'Completed', match: (i) => i.status === 'received' },
+];
+
+export function filterInvites(list, filterId) {
+  const filter = FILTERS.find((f) => f.id === filterId) || FILTERS[0];
+  return list.filter(filter.match);
+}
+
+function renderStatusFilter() {
+  document.getElementById('status-filter').innerHTML = FILTERS.map((f) =>
+    `<button type="button" class="filter-pill" data-filter="${f.id}" aria-pressed="${f.id === statusFilter}">${f.label}</button>`
+  ).join('');
+}
+
 // Which action buttons a row shows, by status (pure — unit tested).
 // Download Pack lives only inside the View record inspector now, not here.
 // `downloaded` gates Confirm Receipt (revealed only after a pack download,
 // which now happens from inside the inspector).
 // `formsComplete` gates View record (as soon as any form has progress).
+// Resend link only makes sense before the candidate has submitted — once
+// submitted/received there's no portal link left to chase.
 // Delete is always offered — HR can remove a candidate at any stage.
 export function actionsFor(status, downloaded = false, formsComplete = 0) {
   const view = formsComplete > 0 ? ['view'] : [];
   switch (status) {
     case 'invited':
-      return ['delete'];
+      return ['resend', 'delete'];
     case 'in_progress':
-      return [...view, 'delete'];
+      return [...view, 'resend', 'delete'];
     case 'submitted':
       return [...view, ...(downloaded ? ['receipt'] : []), 'delete'];
     case 'received':
@@ -59,20 +87,25 @@ export function actionsFor(status, downloaded = false, formsComplete = 0) {
 }
 
 const ACTION_LABEL = {
-  receipt: 'Confirm Receipt', view: 'View record',
+  receipt: 'Confirm Receipt', view: 'View record', resend: 'Resend link', delete: 'Delete',
 };
 
-// Delete (and a demo-only Edit placeholder) live behind a "⋮" menu instead of
-// a bare button on every row — actionsFor always includes 'delete', so the
-// kebab is unconditional; only the primary buttons (view/receipt) vary.
+// Every row action (View record, Resend link, Confirm Receipt, Delete) lives
+// behind a single "⋮" menu — keeps each row to one compact button instead of
+// a row button plus a separate kebab for just Edit/Delete.
 function actionButtonsHTML(invite) {
-  const primaryButtons = actionsFor(invite.status, hasPack(invite.id), invite.formsComplete)
-    .filter((act) => act !== 'delete')
-    .map((act) => `<button class="btn btn-sm btn-secondary" data-act="${act}">${ACTION_LABEL[act]}</button>`)
+  return `<button type="button" class="btn btn-sm btn-secondary kebab-btn" data-act="menu"
+    aria-haspopup="true" aria-expanded="false" aria-label="Actions for ${escH(displayName(invite))}">&#8942;</button>`;
+}
+
+// Demo-only Edit placeholder first, then whatever actionsFor() offers for
+// this invite's status (view/resend/receipt/delete).
+function rowMenuHTML(invite) {
+  const items = actionsFor(invite.status, hasPack(invite.id), invite.formsComplete)
+    .map((act) => `<button type="button" class="row-menu-item${act === 'delete' ? ' row-menu-item-danger' : ''}"
+      data-menu-act="${act}" role="menuitem">${ACTION_LABEL[act] || act}</button>`)
     .join('');
-  const kebab = `<button type="button" class="btn btn-sm btn-secondary kebab-btn" data-act="menu"
-    aria-haspopup="true" aria-expanded="false" aria-label="More actions for ${escH(displayName(invite))}">&#8942;</button>`;
-  return primaryButtons + kebab;
+  return `<button type="button" class="row-menu-item" data-menu-act="edit" role="menuitem">Edit</button>${items}`;
 }
 
 export function rowHTML(invite) {
@@ -80,6 +113,7 @@ export function rowHTML(invite) {
   return `<tr data-id="${escH(invite.id)}">
     <td data-label="Candidate">${escH(displayName(invite))}</td>
     <td data-label="Role">${escH(invite.role)}</td>
+    <td data-label="Interview date">${formatDateOnly(invite.offerTerms?.startDate)}</td>
     <td data-label="Link sent">${formatDate(invite.linkSentAt)}</td>
     <td data-label="Submitted">${formatDate(invite.submittedAt)}</td>
     <td data-label="Progress">${invite.formsComplete}/${invite.formsTotal}<div class="bar bar-${escH(invite.status)}"><i style="width:${pct}%"></i></div></td>
@@ -105,18 +139,30 @@ function renderMetrics(m) {
     .join('');
 }
 
-function renderMatrix(list) {
+function renderMatrix(list, totalCount) {
   closeMenu(); // a re-render replaces the row DOM — don't leave the menu pointing at a detached button
   const body = document.getElementById('matrix-body');
   const empty = document.getElementById('matrix-empty');
-  if (!list.length) { body.innerHTML = ''; if (empty) empty.hidden = false; return; }
+  if (!list.length) {
+    body.innerHTML = '';
+    if (empty) {
+      empty.hidden = false;
+      // No candidates at all vs. none matching the current filter get different messages.
+      empty.innerHTML = totalCount === 0
+        ? '<p>No candidates yet. Invite your first candidate to start onboarding.</p>'
+          + '<button class="btn btn-primary" data-nav="invite">+ Invite candidate</button>'
+        : '<p>No candidates match this filter.</p>';
+    }
+    return;
+  }
   if (empty) empty.hidden = true;
   body.innerHTML = list.map(rowHTML).join('');
 }
 
 export function render(list) {
   renderMetrics(computeMetrics(list));
-  renderMatrix(list);
+  renderStatusFilter();
+  renderMatrix(filterInvites(list, statusFilter), list.length);
 }
 
 // Shimmer placeholder rows shown on the very first load (before data arrives).
@@ -126,7 +172,7 @@ function renderSkeleton(rows = 4) {
   if (empty) empty.hidden = true;
   const cell = '<td><div class="skel">&nbsp;</div></td>';
   document.getElementById('matrix-body').innerHTML =
-    Array.from({ length: rows }, () => `<tr class="skeleton-row">${cell.repeat(6)}</tr>`).join('');
+    Array.from({ length: rows }, () => `<tr class="skeleton-row">${cell.repeat(8)}</tr>`).join('');
 }
 
 /* ---------- row menu (kebab) ---------- */
@@ -155,23 +201,50 @@ function positionMenu(btn) {
 function openMenu(btn, id) {
   if (menuOpenId === id) { closeMenu(); return; }
   closeMenu();
+  const invite = invites.find((i) => i.id === id);
+  if (!invite) return;
+  document.getElementById('row-menu').innerHTML = rowMenuHTML(invite);
   menuOpenId = id;
   menuOpenBtn = btn;
   btn.setAttribute('aria-expanded', 'true');
   positionMenu(btn);
 }
 
-async function deleteInvite(id, btn) {
+async function deleteInvite(id) {
   const invite = invites.find((i) => i.id === id);
   if (!invite) return;
   if (!window.confirm(
     `Delete ${invite.name || invite.email}? This permanently removes their invite and `
     + 'onboarding record. This cannot be undone.')) return;
+  await request(`/invites/${id}`, { method: 'DELETE' });
+  showToast('Candidate deleted');
+  await refresh();
+}
+
+// All row actions (View record, Resend link, Confirm Receipt, Delete) route
+// through here — shared by the kebab menu, the only place they're triggered
+// from now that each row shows just one button.
+async function runRowAction(act, id) {
+  const invite = invites.find((i) => i.id === id);
+  if (!invite) return;
   try {
-    if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
-    await request(`/invites/${id}`, { method: 'DELETE' });
-    showToast('Candidate deleted');
-    await refresh();
+    if (act === 'receipt') {
+      // Irreversible: server-side purge. Guard before firing.
+      if (!window.confirm(
+        'Confirm receipt of this pack? This permanently deletes it from the relay. '
+        + 'Make sure you have downloaded it first — this cannot be undone.')) return;
+      await request(`/packs/${id}/receipt`, { method: 'POST' });
+      showToast('Pack received and purged from relay');
+      await refresh(); // status → received
+    } else if (act === 'view') {
+      openRecord(invite);
+    } else if (act === 'resend') {
+      const { link } = await request(`/invites/${id}/remind`, { method: 'POST' });
+      await refresh(); // linkSentAt bumps
+      showResendLinkModal(displayName(invite), link);
+    } else if (act === 'delete') {
+      await deleteInvite(id);
+    }
   } catch (err) {
     if (err.status !== 401) showToast(err.message || 'Action failed');
     render(invites);
@@ -185,38 +258,13 @@ function onRowMenuClick(e) {
   const id = menuOpenId;
   const act = btn.dataset.menuAct;
   closeMenu();
-  if (act === 'delete' && id) deleteInvite(id);
+  if (id && act !== 'edit') runRowAction(act, id);
 }
 
-async function onMatrixClick(e) {
-  const btn = e.target.closest('button[data-act]');
+function onMatrixClick(e) {
+  const btn = e.target.closest('button[data-act="menu"]');
   if (!btn) return;
-  const id = btn.closest('tr').dataset.id;
-
-  if (btn.dataset.act === 'menu') { openMenu(btn, id); return; }
-
-  const invite = invites.find((i) => i.id === id);
-  if (!invite) return;
-  const act = btn.dataset.act;
-
-  try {
-    if (act === 'receipt') {
-      // Irreversible: server-side purge. Guard before firing.
-      if (!window.confirm(
-        'Confirm receipt of this pack? This permanently deletes it from the relay. '
-        + 'Make sure you have downloaded it first — this cannot be undone.')) return;
-      btn.disabled = true;
-      btn.textContent = 'Confirming…';
-      await request(`/packs/${id}/receipt`, { method: 'POST' });
-      showToast('Pack received and purged from relay');
-      await refresh(); // status → received
-    } else if (act === 'view') {
-      openRecord(invite);
-    }
-  } catch (err) {
-    if (err.status !== 401) showToast(err.message || 'Action failed');
-    render(invites);
-  }
+  openMenu(btn, btn.closest('tr').dataset.id);
 }
 
 export async function refresh() {
@@ -236,6 +284,12 @@ function wireOnce() {
   if (wired) return;
   document.getElementById('matrix-body').addEventListener('click', onMatrixClick);
   document.getElementById('row-menu').addEventListener('click', onRowMenuClick);
+  document.getElementById('status-filter').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-filter]');
+    if (!btn) return;
+    statusFilter = btn.dataset.filter;
+    render(invites); // re-render from the already-fetched list — no refetch needed
+  });
   // Close the row menu on an outside click, Escape, or the page moving under it.
   document.addEventListener('click', (e) => {
     if (!menuOpenId) return;

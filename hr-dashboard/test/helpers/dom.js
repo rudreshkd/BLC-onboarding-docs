@@ -20,6 +20,7 @@ window.BL_API_BASE = 'http://localhost:3000';
 // Markup the dashboard/inspector/invite modules expect to find.
 export const DASHBOARD_HTML = `
   <div id="metrics"></div>
+  <div id="status-filter"></div>
   <table><tbody id="matrix-body"></tbody></table>
   <p id="matrix-empty" hidden></p>
   <aside id="inspector" hidden></aside>

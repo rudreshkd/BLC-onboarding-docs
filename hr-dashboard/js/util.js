@@ -22,6 +22,16 @@ export function formatDate(iso) {
   });
 }
 
+// Date-only value (e.g. the interview date, a plain YYYY-MM-DD with no time
+// component) → "DD Mon YYYY", or "—" when absent/invalid. Distinct from
+// formatDate() above, which shows a time and is for real timestamps.
+export function formatDateOnly(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 // Derive a display name from an email local-part: "sarah.okonkwo@x" → "Sarah Okonkwo".
 export function nameFromEmail(email) {
   const local = String(email || '').split('@')[0] || '';

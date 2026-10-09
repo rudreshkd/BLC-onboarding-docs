@@ -1,4 +1,4 @@
-// forms.js — the 15-form registry (id, name, category, filename).
+// forms.js — the 17-form registry (id, name, category, filename).
 // SYNCED FROM portal/js/state.js FORMS/CATEGORIES/FILE_NAMES — keep in step (D4).
 // Same domain data the candidate portal uses; the inspector groups by category.
 
@@ -26,4 +26,6 @@ export const FORMS = [
   { id: 'offer',           name: 'Offer Letter & Contract',            category: 'Contract & Checks',         file: 'Offer_Letter_Contract.html' },
   { id: 'supervision',     name: 'Supervision Contract',               category: 'Contract & Checks',         file: 'Supervision_Contract.html' },
   { id: 'reg19',           name: 'Employment History (Regulation 19)', category: 'Contract & Checks',         file: 'Employment_History_Regulation_19.html' },
+  { id: 'rightToWork',     name: 'Right to Work',                      category: 'Contract & Checks',         file: 'Right_to_Work.html' },
+  { id: 'dbs',             name: 'DBS Declaration',                    category: 'Contract & Checks',         file: 'DBS_Declaration.html' },
 ];

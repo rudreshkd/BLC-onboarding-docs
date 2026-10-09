@@ -17,10 +17,11 @@ function fld(id, label, opts = {}) {
   const reqAttr = opts.req ? ' class="req"' : '';
   const validate = opts.validate ? ` data-validate="${opts.validate}"` : '';
   const placeholder = opts.placeholder ? ` placeholder="${escH(opts.placeholder)}"` : '';
+  const maxlength = opts.maxlength ? ` maxlength="${opts.maxlength}"` : '';
   const value = opts.value !== undefined ? ` value="${escH(opts.value)}"` : '';
   return `<div class="field">
     <label for="${id}">${label}${req}</label>
-    <input type="${type}" id="${id}"${validate}${reqAttr}${placeholder}${value}>
+    <input type="${type}" id="${id}"${validate}${reqAttr}${placeholder}${maxlength}${value}>
   </div>`;
 }
 
@@ -62,6 +63,19 @@ function yn(name, label, opts = {}) {
     <div class="options" role="radiogroup" aria-labelledby="lbl-${name}">
       <label><input type="radio" name="${name}" value="Yes"${req}${reveal}> Yes</label>
       <label><input type="radio" name="${name}" value="No"${req}${reveal}> No</label>
+    </div>
+  </div>`;
+}
+
+// Yes/No radio group where Yes and No each reveal a *different* conditional
+// block (e.g. Yes reveals extra fields, No reveals an info message).
+function ynDual(name, label, { req, yesReveal, noReveal } = {}) {
+  const reqAttr = req ? ' data-req="true"' : '';
+  return `<div class="choice">
+    <span class="choice-label" id="lbl-${name}">${label}${req ? '<span class="req-mark" aria-hidden="true"> *</span>' : ''}</span>
+    <div class="options" role="radiogroup" aria-labelledby="lbl-${name}">
+      <label><input type="radio" name="${name}" value="Yes"${reqAttr} data-reveal="${yesReveal}" data-reveal-on="Yes"> Yes</label>
+      <label><input type="radio" name="${name}" value="No"${reqAttr} data-reveal="${noReveal}" data-reveal-on="No"> No</label>
     </div>
   </div>`;
 }
@@ -407,6 +421,61 @@ const FORM_BODIES = {
       + section('Gaps in employment — please account for all periods of non-employment',
           repeater('gap', gapEntryBlock(1), 'gap entry'));
   },
+
+  // Share code + DOB are only collected from candidates who both have right
+  // to work AND have a share code to give — nesting the questions keeps that
+  // AND as plain HTML structure rather than custom multi-field wiring.
+  rightToWork() {
+    return section('Right to work in the UK', [
+        yn('rtwEligible', 'Have you got right to work in the UK?', { req: true, reveal: 'cond-rtwYes' }),
+        cond('cond-rtwYes', [
+          ynDual('hasShareCode', 'Do you have a share code?', {
+            req: true, yesReveal: 'cond-shareCode', noReveal: 'cond-rtwDocs',
+          }),
+          cond('cond-rtwDocs', `<div class="info-box">Please bring your passport or biometric
+              residence permit to your interview and the Service Manager will record the
+              check.</div>`),
+          cond('cond-shareCode',
+            fld('shareCode', 'Share code (9 characters, issued by the Home Office — valid for 90 days)', { req: true, validate: 'sharecode', maxlength: 9, placeholder: 'e.g. W2G3V6NM8' })
+            + fld('shareCodeDob', 'Date of birth (needed to check the code)', { req: true, validate: 'dateslash', placeholder: 'DD/MM/YYYY' })),
+        ].join('')),
+      ].join(''))
+      + section('Declaration', `<div class="declaration">
+          <p>I confirm that I have the right to work in the United Kingdom and that the evidence
+          I have given is genuine and relates to me.</p></div>
+          ${fld('rtwSignedName', 'Signed — type your full name', { req: true })}
+          ${fld('rtwSignedDate', 'Date', { type: 'date', req: true })}`);
+  },
+
+  // Certificate details are only collected when the DBS is on the Update
+  // Service (the only case staff can check online); everyone else — no DBS,
+  // or one that isn't checkable — sees the same "staff will be in touch"
+  // notice instead of being asked for numbers they can't provide.
+  dbs() {
+    const applyLinkNotice = `<div class="info-box">A member of staff will contact you separately
+        with a link to complete a new DBS application — this isn't sent automatically through
+        this portal yet.</div>`;
+    return section('DBS (Disclosure and Barring Service)', [
+        ynDual('hasDbs', 'Have you got a DBS?', {
+          req: true, yesReveal: 'cond-dbsYes', noReveal: 'cond-dbsNoRecord',
+        }),
+        cond('cond-dbsNoRecord', applyLinkNotice),
+        cond('cond-dbsYes', [
+          ynDual('dbsUpdateService', 'Is it on the Update Service?', {
+            req: true, yesReveal: 'cond-dbsCertDetails', noReveal: 'cond-dbsNotOnUpdate',
+          }),
+          cond('cond-dbsNotOnUpdate', applyLinkNotice),
+          cond('cond-dbsCertDetails',
+            fld('dbsCertNumber', 'Certificate number (12 digits as printed on the certificate)', { req: true, validate: 'cert12', maxlength: 12, placeholder: '123456789012' })
+            + fld('dbsDateIssue', 'Date of issue', { req: true, validate: 'dateslash', placeholder: 'DD/MM/YYYY' })
+            + sel('dbsWorkforce', 'Workforce', ['Adult', 'Child', 'Adult and Child'], { req: true })),
+        ].join('')),
+      ].join(''))
+      + section('Declaration', `<div class="declaration">
+          <p>I declare that the information given about my DBS status is true, and I consent to
+          Brighter Living Care Ltd verifying it with the Disclosure and Barring Service.</p></div>
+          ${chk('dbsDeclaration', 'I agree to the above declaration', { req: true })}`);
+  },
 };
 
 /* ---------- conditional + repeater wiring ---------- */
@@ -414,9 +483,21 @@ const FORM_BODIES = {
 function wireConditionals(root) {
   root.addEventListener('change', e => {
     const radio = e.target;
-    if (radio.type !== 'radio' || !radio.dataset.reveal) return;
-    const target = document.getElementById(radio.dataset.reveal);
-    if (target) target.classList.toggle('visible', radio.checked && radio.value === radio.dataset.revealOn);
+    if (radio.type !== 'radio' || !radio.name) return;
+    // Re-evaluate every reveal target in this radio group, not just the one
+    // clicked — needed so ynDual's Yes/No each hide the *other* answer's block.
+    // A target's visibility is "does any radio pointing at it match its own
+    // reveal-on value" — computed per unique target id, not per radio, so a
+    // single-target reveal (yn(), where Yes and No share one id) isn't left
+    // to whichever radio happens to be checked last in DOM order.
+    const group = [...root.querySelectorAll(`input[type="radio"][name="${radio.name}"][data-reveal]`)];
+    const targetIds = new Set(group.map(r => r.dataset.reveal));
+    targetIds.forEach(id => {
+      const target = document.getElementById(id);
+      if (!target) return;
+      const shouldShow = group.some(r => r.dataset.reveal === id && r.checked && r.value === r.dataset.revealOn);
+      target.classList.toggle('visible', shouldShow);
+    });
     // COVID form: "No" reveals its own reason field
     if (radio.name === 'covidVaccinated') {
       const noBox = document.getElementById('cond-covidNo');

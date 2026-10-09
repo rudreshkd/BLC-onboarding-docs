@@ -14,19 +14,19 @@ test('computeMetrics counts total / in progress / submitted / received', () => {
   assert.deepEqual(m, { total: 5, inProgress: 1, pendingReview: 2, received: 1 });
 });
 
-test('actionsFor never shows Download Pack or Resend on the table row — Download lives inside View record', () => {
-  assert.deepEqual(actionsFor('invited'), ['delete']);
-  assert.deepEqual(actionsFor('in_progress'), ['delete']);
+test('actionsFor never shows Download Pack on the table row — it lives inside View record; Resend offers before submission', () => {
+  assert.deepEqual(actionsFor('invited'), ['resend', 'delete']);
+  assert.deepEqual(actionsFor('in_progress'), ['resend', 'delete']);
   assert.deepEqual(actionsFor('submitted', false, 15), ['view', 'delete']);
   assert.deepEqual(actionsFor('submitted', true, 15), ['view', 'receipt', 'delete']);
   assert.deepEqual(actionsFor('received'), ['view', 'delete']);
 });
 
 test('actionsFor offers View record once any form has progress, even before fully received', () => {
-  assert.deepEqual(actionsFor('invited', false, 0), ['delete']);
-  assert.deepEqual(actionsFor('invited', false, 3), ['delete'], 'invited candidates have not started forms');
-  assert.deepEqual(actionsFor('in_progress', false, 0), ['delete']);
-  assert.deepEqual(actionsFor('in_progress', false, 3), ['view', 'delete']);
+  assert.deepEqual(actionsFor('invited', false, 0), ['resend', 'delete']);
+  assert.deepEqual(actionsFor('invited', false, 3), ['resend', 'delete'], 'invited candidates have not started forms');
+  assert.deepEqual(actionsFor('in_progress', false, 0), ['resend', 'delete']);
+  assert.deepEqual(actionsFor('in_progress', false, 3), ['view', 'resend', 'delete']);
   assert.deepEqual(actionsFor('submitted', false, 15), ['view', 'delete']);
 });
 
@@ -48,7 +48,7 @@ test('rowHTML carries data-label on every cell (mobile card reflow contract)', (
     id: '1', email: 'a@b.com', role: 'SW', status: 'invited',
     formProgress: {}, formsComplete: 0, formsTotal: 15, submittedAt: null,
   });
-  for (const label of ['Candidate', 'Role', 'Link sent', 'Submitted', 'Progress', 'Status', 'Actions']) {
+  for (const label of ['Candidate', 'Role', 'Interview date', 'Link sent', 'Submitted', 'Progress', 'Status', 'Actions']) {
     assert.ok(html.includes(`data-label="${label}"`), `missing data-label ${label}`);
   }
 });

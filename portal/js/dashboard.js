@@ -8,6 +8,7 @@ import { showDownloads } from './downloads.js';
 import { showToast } from './toast.js';
 import { formatError, setError, wireLiveValidation } from './validation.js';
 import { submitPackToHR } from './submit.js';
+import { submitEarlyDetailsToHR } from './earlyDetails.js';
 
 export function badgeHTML(status) {
   // Glyph + text so colour is never the only signal (WCAG)
@@ -18,6 +19,39 @@ export function badgeHTML(status) {
   };
   const [cls, glyph, label] = map[status];
   return `<span class="badge ${cls}"><span aria-hidden="true">${glyph}</span>${label}</span>`;
+}
+
+// Sentinel id for the "add your details" row — it isn't a submittable pack
+// form (no FORMS entry, no signature), so it's rendered and wired separately
+// from the FORMS.map() loop below but as an identical form-row button.
+const PROFILE_ROW_ID = '__profile__';
+
+function profileRowHTML() {
+  const status = state.profileComplete ? 'completed' : 'notstarted';
+  return `<li>
+    <button type="button" class="form-row" data-form="${PROFILE_ROW_ID}">
+      <span class="meta">
+        <span class="name">Add your details</span>
+      </span>
+      <span class="right">${badgeHTML(status)}</span>
+    </button>
+  </li>`;
+}
+
+function formRowHTML(f) {
+  const status = statusOf(f.id);
+  const sub = state.submissions[f.id];
+  const submitted = status === 'completed' && sub?.signedAt
+    ? ` · Submitted ${formatDate(sub.signedAt)}` : '';
+  return `<li>
+    <button type="button" class="form-row" data-form="${f.id}">
+      <span class="meta">
+        <span class="name">${escH(f.name)}</span>
+        ${submitted ? `<span class="sub">${submitted.replace(/^ · /, '')}</span>` : ''}
+      </span>
+      <span class="right">${badgeHTML(status)}</span>
+    </button>
+  </li>`;
 }
 
 export function renderDashboard() {
@@ -33,30 +67,55 @@ export function renderDashboard() {
   const label = document.getElementById('dash-progress-label');
   label.textContent = `${done} of ${total} forms complete`;
 
+  // These sit at the front of FORMS. Details, Reg 19, Right to Work and DBS
+  // must all be done before the rest of the pack unlocks — until then, hide
+  // everything else.
+  const GATE_FORM_IDS = ['reg19', 'rightToWork', 'dbs'];
+  const gateComplete = state.profileComplete
+    && GATE_FORM_IDS.every(id => statusOf(id) === 'completed');
+  const visibleForms = gateComplete ? FORMS : FORMS.filter(f => GATE_FORM_IDS.includes(f.id));
+
+  document.getElementById('pack-stepper').innerHTML = `
+    <div class="pack-step${gateComplete ? '' : ' active'}">
+      <span class="pack-step-num">1</span><span class="pack-step-label">Details &amp; history</span>
+    </div>
+    <div class="pack-step-connector"></div>
+    <div class="pack-step${gateComplete ? ' active' : ''}">
+      <span class="pack-step-num">2</span><span class="pack-step-label">Remaining forms</span>
+    </div>`;
+  document.getElementById('part1-heading').innerHTML = gateComplete ? '' : `
+    <strong>Part 1 — Your details and employment history</strong>
+    <span>Complete the forms below to unlock the rest of your forms</span>`;
+
+  // Let HR see these 4 forms' answers as soon as they're all done, without
+  // waiting for the rest of the pack. Only latch "sent" on success — a failed
+  // attempt (offline, etc.) just retries next time this function runs.
+  if (gateComplete && !state.earlyDetailsSent) {
+    submitEarlyDetailsToHR().then((ok) => {
+      if (ok) { state.earlyDetailsSent = true; saveDraft(state); }
+    });
+  }
+
   const list = document.getElementById('dash-form-list');
-  list.innerHTML = FORMS.map(f => {
-    const status = statusOf(f.id);
-    const sub = state.submissions[f.id];
-    const submitted = status === 'completed' && sub?.signedAt
-      ? ` · Submitted ${formatDate(sub.signedAt)}` : '';
-    return `<li>
-      <button type="button" class="form-row" data-form="${f.id}">
-        <span class="meta">
-          <span class="name">${escH(f.name)}</span>
-          ${submitted ? `<span class="sub">${submitted.replace(/^ · /, '')}</span>` : ''}
-        </span>
-        <span class="right">${badgeHTML(status)}</span>
-      </button>
-    </li>`;
-  }).join('');
+  list.innerHTML = profileRowHTML() + visibleForms.map(formRowHTML).join('');
 
   list.querySelectorAll('[data-form]').forEach(btn =>
-    btn.addEventListener('click', () => openForm(btn.dataset.form)));
+    btn.addEventListener('click', () => {
+      if (btn.dataset.form === PROFILE_ROW_ID) {
+        fillProfileForm(); // repopulate inputs from saved state each time it opens
+        showView('view-profile');
+      } else {
+        openForm(btn.dataset.form);
+      }
+    }));
 
   const submitBtn = document.getElementById('btn-submit-pack');
   const complete = allComplete();
   submitBtn.disabled = !complete || state.packSubmitted;
   submitBtn.textContent = state.packSubmitted ? 'Pack sent to HR ✓' : 'Submit pack to HR';
+  // Nothing to submit yet while still on Part 1 — the button (and the
+  // outstanding-forms list it can reveal) only reappears once Part 2 unlocks.
+  submitBtn.hidden = !gateComplete;
   document.getElementById('outstanding-list').style.display = 'none';
 }
 
@@ -111,18 +170,15 @@ export async function submitPack() {
 export function wireDashboard() {
   document.getElementById('btn-submit-pack').addEventListener('click', confirmSubmitPack);
   // The disabled submit button has pointer-events:none, so clicks on it land
-  // here and reveal the outstanding-forms list (requirements §4.3).
+  // here and reveal the outstanding-forms list (requirements §4.3). Only
+  // relevant once the button itself is showing (Part 2 — see renderDashboard).
   document.getElementById('submit-pack-area').addEventListener('click', () => {
-    if (!allComplete()) showOutstanding();
+    if (!document.getElementById('btn-submit-pack').hidden && !allComplete()) showOutstanding();
   });
   document.getElementById('btn-modal-yes').addEventListener('click', submitPack);
   document.getElementById('btn-modal-back').addEventListener('click', () =>
     document.getElementById('modal-submit-pack').classList.remove('open'));
   document.getElementById('link-downloads').addEventListener('click', showDownloads);
-  document.getElementById('btn-edit-profile').addEventListener('click', () => {
-    fillProfileForm(); // repopulate inputs from saved state each time it opens
-    showView('view-profile');
-  });
 }
 
 /* ---------- profile form ---------- */

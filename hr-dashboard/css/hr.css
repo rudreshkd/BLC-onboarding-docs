@@ -11,14 +11,14 @@ body {
 .btn {
   font-family: var(--font-body); font-size: 14px; font-weight: 600;
   padding: 8px 14px; border-radius: 8px; border: 1px solid transparent;
-  cursor: pointer; background: #fff;
+  cursor: pointer; background: var(--surface); color: var(--text);
 }
 .btn-primary { background: var(--yellow); color: var(--green-dk); }
 .btn-primary:hover { background: var(--yellow-dk); }
 .btn-ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,.4); }
 .btn-secondary { background: var(--green-lt); color: var(--green-md); border-color: var(--border); }
 .btn-secondary:hover { background: #e6dcf7; }
-.btn-danger { background: #fff; color: var(--red); border-color: var(--red-lt); }
+.btn-danger { background: var(--surface); color: var(--red); border-color: var(--red-lt); }
 .btn-danger:hover { background: var(--red-lt); }
 .btn-sm { padding: 5px 10px; font-size: 13px; }
 .btn[disabled] { opacity: .5; cursor: not-allowed; }
@@ -27,27 +27,101 @@ body {
 .login-wrap { min-height: 90vh; display: grid; place-items: center; padding: 24px; }
 .login-wrap[hidden] { display: none; }
 .login-card {
-  background: #fff; border: 1px solid var(--border); border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
   padding: 32px; width: 100%; max-width: 380px;
 }
 .brand { font-family: var(--font-head); color: var(--green-md); margin: 0 0 4px; }
 .field { display: block; margin: 14px 0; }
+.field[hidden] { display: none; }
 .field span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
 .field input, .field select {
   width: 100%; padding: 10px; border: 1px solid var(--border);
-  border-radius: 8px; font-size: 16px; background: #fff;
+  border-radius: 8px; font-size: 16px; background: var(--surface); color: var(--text);
 }
 .field-error input { border-color: var(--red); background: var(--red-lt); }
 .error-msg { color: var(--red); font-size: 13px; margin: 6px 0 0; }
 
-/* Topbar */
+/* Topbar — uses --green-md, the same deep purple as the rest of the
+   dashboard's brand accents (headings, active filter pills, the Total metric
+   card), rather than the near-black --green-dk (only otherwise used for the
+   toast and dark-mode icon), so it reads as part of the same colour family. */
 .topbar {
-  background: var(--green-dk); color: #fff; display: flex;
+  background: var(--green-md); color: #fff; display: flex;
   align-items: center; justify-content: space-between; padding: 12px 20px;
 }
-.topbar-brand { font-family: var(--font-head); font-weight: 700; }
+.topbar-brand { font-family: var(--font-head); font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.topbar-logo { height: 22px; width: auto; flex: 0 0 auto; }
 .topbar-actions { display: flex; gap: 8px; }
 .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+
+/* Dashboard layout: collapsible icon-rail sidebar + main content.
+   The sidebar is left-aligned with the same 20px padding as .topbar, so it
+   sits flush under the "Brighter Living · HR Dashboard" title. The table
+   doesn't grow to fill the rest of the row — flex-grow:0 leaves space for the
+   auto margins to centre it in whatever's left beside the sidebar. */
+.dashboard-layout { display: flex; align-items: stretch; padding: 0 20px; }
+.dashboard-layout .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 0; flex: 0 1 1100px; min-width: 0; }
+
+/* Sidebar column: brand logo above a bordered card (search + pipeline legend
+   + theme toggle). Collapsed to a 60px icon rail by default; the hamburger
+   toggle expands it (to 220px) to also show text labels. */
+.sidebar-col {
+  display: flex; flex-direction: column;
+  flex: 0 0 60px; margin: 24px 20px 24px 0; width: 60px;
+  transition: width .18s ease, flex-basis .18s ease;
+}
+.sidebar-col.expanded { flex-basis: 220px; width: 220px; }
+
+.sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 0 0 14px; overflow: hidden; flex: 0 0 auto; }
+.sidebar-logo-mark { width: 25px; height: 28px; flex: 0 0 25px; object-fit: contain; }
+.sidebar-logo-text {
+  font-family: var(--font-head); font-weight: 700; color: var(--green-md);
+  white-space: nowrap; opacity: 0; transition: opacity .15s;
+}
+.sidebar-col.expanded .sidebar-logo-text { opacity: 1; }
+
+/* Recruitment pipeline sidebar — static reference legend (icon + colour per
+   stage), not tied to live candidate data. Flush with the page background
+   (no card fill/border) — like ChatGPT's sidebar — so it blends into the
+   page rather than sitting on top of it as a separate panel; a faint right
+   edge is the only separation from the main content. */
+.stage-legend {
+  display: flex; flex-direction: column; flex: 1;
+  background: var(--bg); color: var(--text);
+  border: none; border-right: 1px solid var(--border); border-radius: 0; padding: 12px 0;
+  overflow: hidden;
+}
+.stage-legend-toggle {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: none; padding: 0 16px 12px; margin-bottom: 4px;
+  border-bottom: 1px solid var(--border); cursor: pointer; font: inherit; color: inherit;
+}
+/* --green-lt (#F0EBF9) is nearly identical to --bg (#EAE2F7) — without a
+   border these two circles would almost disappear into the now page-coloured
+   sidebar in light mode. */
+.stage-icon-menu { background: var(--green-lt); color: var(--green-md); font-size: 14px; border: 1px solid var(--border); }
+.stage-icon-theme { background: var(--green-dk); color: #fff; font-size: 13px; }
+.stage-legend-title {
+  font-size: 12px; text-transform: uppercase; color: var(--muted); font-family: var(--font-head);
+  white-space: nowrap; opacity: 0; transition: opacity .15s;
+}
+.sidebar-col.expanded .stage-legend-title { opacity: 1; }
+
+/* Plain block flow (no flex/space-between) — items sit directly one after
+   another with no gap beyond their own padding. */
+.stage-legend ul { list-style: none; margin: 0; padding: 0; }
+.stage-item { display: flex; align-items: center; gap: 10px; padding: 7px 16px; font-size: 13.5px; }
+.stage-item-btn { width: 100%; background: none; border: none; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.stage-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; flex: 0 0 28px; border-radius: 50%; font-size: 13px;
+}
+.stage-name { white-space: nowrap; opacity: 0; transition: opacity .15s; }
+.sidebar-col.expanded .stage-name { opacity: 1; }
+
+/* Theme toggle is the last item, pinned to the bottom of the (stretched)
+   sidebar card via margin-top:auto on this flex column. */
+.theme-toggle { margin-top: auto; border-top: 1px solid var(--border); padding-top: 12px; }
 
 /* Metrics — each card's text colour matches its equivalent status badge below
    (badge-in_progress / badge-submitted / badge-received), so the two bands
@@ -66,8 +140,24 @@ body {
 .metric-submitted { background: #e5dcf3; color: var(--green-md); } /* badge-submitted's --green-lt, slightly darker */
 .metric-received { background: #d2f0ef; color: #0a6b54; } /* badge-received's --gold-lt, slightly darker */
 
+/* Status filter bar — pill buttons above the matrix, colour-matched to the
+   badge/metric-card each one filters down to. The active pill is filled;
+   inactive ones are outlined so the current filter reads at a glance. */
+.status-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.filter-pill {
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600;
+  font-family: var(--font-body); cursor: pointer;
+}
+.filter-pill:hover { border-color: var(--green-md); }
+.filter-pill[aria-pressed="true"] { border-color: transparent; color: #fff; }
+.filter-pill[data-filter="all"][aria-pressed="true"] { background: var(--green-md); }
+.filter-pill[data-filter="in_progress"][aria-pressed="true"] { background: var(--amber); }
+.filter-pill[data-filter="submitted"][aria-pressed="true"] { background: var(--green-md); }
+.filter-pill[data-filter="received"][aria-pressed="true"] { background: #0a6b54; }
+
 /* Matrix */
-.matrix { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; }
+.matrix { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; }
 .matrix th, .matrix td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
 .matrix th { background: var(--green-lt); color: var(--green-md); font-family: var(--font-head); }
 .bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 4px; }
@@ -98,7 +188,7 @@ body {
    table, so it's never clipped by the matrix's own overflow: hidden/auto. */
 .kebab-btn { min-width: 32px; padding: 5px 8px; font-size: 16px; line-height: 1; letter-spacing: 1px; }
 .row-menu-dropdown {
-  position: fixed; background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
   box-shadow: 0 6px 20px rgba(28,26,46,.22); min-width: 130px; padding: 4px; z-index: 60;
 }
 .row-menu-dropdown[hidden] { display: none; }
@@ -115,12 +205,25 @@ body {
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); }
 .inspector {
   position: fixed; top: 0; right: 0; height: 100%; width: min(520px, 92vw);
-  background: #fff; box-shadow: -4px 0 24px rgba(0,0,0,.18); padding: 24px;
+  background: var(--surface); color: var(--text); box-shadow: -4px 0 24px rgba(0,0,0,.18); padding: 24px;
   overflow-y: auto; z-index: 10;
 }
 .inspector h2 { font-family: var(--font-head); color: var(--green-md); }
 .cat-group { margin: 18px 0; }
 .cat-group h3 { font-size: 13px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+
+/* Collapsible candidate-details sections in the inspector */
+.details-toggle {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  background: none; border: none; padding: 0 0 4px; margin: 0;
+  font: inherit; text-align: left; cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.details-toggle h3 { margin: 0; padding: 0; border-bottom: none; }
+.details-toggle .chevron { color: var(--muted); font-size: 12px; transition: transform .15s; }
+.details-toggle[aria-expanded="true"] .chevron { transform: rotate(90deg); }
+.details-body { padding-top: 8px; }
+.details-body[hidden] { display: none; }
 .form-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 14px; }
 .tick, .dash, .none { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .tick { background: var(--success-lt); color: var(--success); }
@@ -132,7 +235,10 @@ body {
   background: rgba(0,0,0,.35); z-index: 20;
 }
 .modal[hidden] { display: none; }
-.modal-card { background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 440px; }
+.modal-card {
+  background: var(--surface); color: var(--text); border-radius: 14px; padding: 24px; width: 100%; max-width: 440px;
+  max-height: 90vh; overflow-y: auto;
+}
 
 .toast {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -167,7 +273,7 @@ body {
 .matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
 
 /* Empty state — a feature, not a fallback. */
-.empty-state { text-align: center; padding: 48px 20px; background: #fff; border-radius: 12px; }
+.empty-state { text-align: center; padding: 48px 20px; background: var(--surface); border-radius: 12px; }
 .empty-state p { color: var(--muted); margin: 0 0 14px; }
 
 /* Loading skeleton rows. */
@@ -179,10 +285,16 @@ body {
 @media (prefers-reduced-motion: reduce) { .skel { animation: none; } .btn, .matrix tbody tr { transition: none; } }
 
 /* Mobile (<640px): reflow each matrix row into a labelled card. */
+@media (max-width: 900px) {
+  .dashboard-layout { flex-direction: column; }
+  .sidebar-col { flex: 0 0 auto; margin: 20px 0 0; } /* stays collapsed (60px) until expanded */
+  .sidebar-col.expanded { width: 100%; }
+}
+
 @media (max-width: 640px) {
   .matrix thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } /* visually-hidden, still in a11y tree */
   .matrix, .matrix tbody, .matrix tr, .matrix td { display: block; width: 100%; }
-  .matrix tr { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: #fff; }
+  .matrix tr { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); }
   .matrix td { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border); }
   .matrix td:last-child { border-bottom: 0; }
   .matrix td::before { content: attr(data-label); font-weight: 600; color: var(--muted); }

@@ -76,5 +76,5 @@ export const config = {
   // Max pack upload size — 50 MB per TASK 3.3.
   maxPackBytes: 50 * 1024 * 1024,
   // Total number of onboarding forms (mirrors portal FORMS registry).
-  formsTotal: 15,
+  formsTotal: 17,
 };

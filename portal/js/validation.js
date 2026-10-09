@@ -8,6 +8,11 @@ const POSTCODE_RE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
 const MONTH_RE    = /^(0[1-9]|1[0-2])\/\d{4}$/;
 // UK phone: optional +44 or leading 0, then 9–10 digits once separators are stripped.
 const PHONE_RE    = /^(?:\+44|0)\d{9,10}$/;
+const DATE_SLASH_RE = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+// Right to work share codes are 9 alphanumeric characters, e.g. W2G3V6NM8.
+const SHARE_CODE_RE = /^[A-Za-z0-9]{9}$/;
+// DBS certificate number, as printed on the certificate.
+const CERT12_RE = /^\d{12}$/;
 
 export function setError(input, message) {
   const wrapper = input.closest('.field') || input.parentElement;
@@ -61,6 +66,15 @@ export function formatError(input) {
   }
   if (input.dataset.validate === 'month') {
     if (!MONTH_RE.test(value)) return 'Use MM/YYYY format, e.g. 03/2021';
+  }
+  if (input.dataset.validate === 'dateslash') {
+    if (!DATE_SLASH_RE.test(value)) return 'Use DD/MM/YYYY format, e.g. 05/03/1990';
+  }
+  if (input.dataset.validate === 'sharecode') {
+    if (!SHARE_CODE_RE.test(value)) return 'Enter your 9-character share code';
+  }
+  if (input.dataset.validate === 'cert12') {
+    if (!CERT12_RE.test(value)) return 'Certificate number must be exactly 12 digits';
   }
   return null;
 }

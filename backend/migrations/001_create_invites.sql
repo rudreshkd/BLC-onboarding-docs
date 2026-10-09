@@ -13,7 +13,7 @@ CREATE TABLE invites (
   email         TEXT NOT NULL,
   role          TEXT NOT NULL,
   offer_terms   JSONB NOT NULL,
-  -- offer_terms shape: { startDate, salary, hours, manager }
+  -- offer_terms shape: { startDate, salary, hours, manager, phone }
   status        TEXT NOT NULL DEFAULT 'invited'
                   CHECK (status IN ('invited', 'in_progress', 'submitted', 'received')),
   form_progress JSONB NOT NULL DEFAULT '{}',
